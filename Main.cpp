@@ -338,7 +338,7 @@ ParamsSetup (
 	def.uu.id = 100;
 	def.u.bd.dephault = true;
 	A_char name2[10];
-	PF_STRCPY(name2, "Anti-Aliasing");
+	PF_STRCPY(name2, "Sort Alpha");
 	def.u.bd.u.nameptr = name2;
 	if (err = PF_ADD_PARAM(in_data, -1, &def))
 		return err;
@@ -360,6 +360,8 @@ PF_UserChangedParamExtra *extra){
 	/*AEGP_SuiteHandler suites(in_data->pica_basicP);
 	suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg,
 		"%d == %d", UIP_SortPattern, extra->param_index);*/
+	AEGP_SuiteHandler suites(in_data->pica_basicP);
+	
 	if (extra->param_index == UIP_SortPattern) {
 		//change which options to show
 		params[UIP_GroupPatternOptionStart]->flags |= ~PF_ParamFlag_COLLAPSE_TWIRLY;
@@ -465,7 +467,9 @@ PF_UserChangedParamExtra *extra){
 		default:
 			break;
 		}
-
+		for (int i = UIP_GroupPatternOptionStart; i <= UIP_Rotation; i++) {
+			suites.ParamUtilsSuite3()->PF_UpdateParamUI(in_data->effect_ref, i, params[i]);
+		}
 	}
 	return PF_Err_NONE;
 }

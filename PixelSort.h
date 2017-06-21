@@ -20,7 +20,7 @@ enum PixelSortPattern {
     PSP_Optical_Flow,
 };
 
-struct Pixel {
+struct Pixel {/*0.0f-255.0f*/
     union {
         struct {
             float r, g, b, a;
@@ -28,6 +28,8 @@ struct Pixel {
         float e[4];
     };
 };
+
+
 
 struct PixelSortPatternParm {
     PixelSortPattern pattern;
@@ -38,21 +40,42 @@ struct PixelSortPatternParmLinear {
     float angle;
 };
 
-struct PixelSortPatternParmRadialZoom {
+struct PixelSortPatternParmRadialSpin {
     PixelSortPatternParm base;
-    int center[2];
+    float center[2];
+	float WHRatio;
+	float rotation;
+};
+struct PixelSortPatternParmPolygon {
+	PixelSortPatternParm base;
+	float center[2];
+	float numSides;
+	float WHRatio;
+	float rotation;
+};
+struct PixelSortPatternParmSpiral {
+	PixelSortPatternParm base;
+	float center[2];
+	float curveAngle;
+	float WHRatio;
+	float rotation;
+};
+struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(Wave)
+	PixelSortPatternParm base;
+	float waveLength;
+	float waveHeight;
+	float rotation;
+};
+struct PixelSortPatternParmOpFlow {
+	PixelSortPatternParm base;
+	//TBD
 };
 
-/*
- *
- * Other patterns to be added
- *
- */
 
-void PixelSort(const Pixel *input, int width, int height, Pixel *output,
+void PixelSortCPU(const Pixel *input, int width, int height, Pixel *output,
         PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
-        PixelSortPatternParm *pattern_parm, bool anti_aliasing);
+        PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha);
 
-/*void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
+void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
 	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
-	PixelSortPatternParm *pattern_parm, bool anti_aliasing);*/
+	PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha);

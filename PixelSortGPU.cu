@@ -9,6 +9,7 @@ __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
 	const int yt = blockIdx.y * blockDim.y + threadIdx.y;
 	const int xt = blockIdx.x * blockDim.x + threadIdx.x;
 }*/
+/*
 __global__ void CalculateFixed(
 	const float *background, const float *target, const float* mask, float *fixed,
 	const int wb, const int hb, const int wt, const int ht,
@@ -19,10 +20,10 @@ __global__ void CalculateFixed(
 	const int xt = blockIdx.x * blockDim.x + threadIdx.x;
 
 }
-
+*/
 void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
 	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
-	PixelSortPatternParm *pattern_parm, bool anti_aliasing) {
+	PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha) {
 
 	switch (pattern_parm->pattern) {
 	case PSP_Linear:
