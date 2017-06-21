@@ -1,7 +1,7 @@
 #pragma once
 
 enum PixelSortBy {
-    PSB_Hue,
+    PSB_Hue = 1,
     PSB_Saturation,
     PSB_Luminance,
     PSB_R,
@@ -10,8 +10,7 @@ enum PixelSortBy {
 };
 
 enum PixelSortPattern {
-    PSP_Linear,
-    PSP_Radial_Zoom,
+    PSP_Linear = 1,
     PSP_Radial_Spin,
     PSP_Polygon,
     PSP_Spiral,
@@ -53,3 +52,7 @@ struct PixelSortPatternParmRadialZoom {
 void PixelSort(const Pixel *input, int width, int height, Pixel *output,
         PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
         PixelSortPatternParm *pattern_parm, bool anti_aliasing);
+
+/*void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
+	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
+	PixelSortPatternParm *pattern_parm, bool anti_aliasing);*/
