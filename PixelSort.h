@@ -47,6 +47,8 @@ struct PixelSortPatternParmRadialSpin {
     float center[2];
 	float WHRatio;
 	float rotation;
+
+    void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmPolygon {
 	PixelSortPatternParm base;
@@ -54,6 +56,8 @@ struct PixelSortPatternParmPolygon {
 	int numSides;
 	float WHRatio;
 	float rotation;
+
+    void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmSpiral {
 	PixelSortPatternParm base;
@@ -61,12 +65,16 @@ struct PixelSortPatternParmSpiral {
 	float curveAngle;
 	float WHRatio;
 	float rotation;
+
+    void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(Wave)
 	PixelSortPatternParm base;
 	float waveLength;
 	float waveHeight;
 	float rotation;
+
+    void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmOpFlow {
 	PixelSortPatternParm base;
