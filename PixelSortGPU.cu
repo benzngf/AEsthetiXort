@@ -1,13 +1,20 @@
 #include "PixelSort.h"
 #include <stdio.h>
+#include <math.h>
 
 __device__ __host__ int CeilDiv(int a, int b) { return (a-1)/b + 1; }
 __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
 
-/*
 void PixelSortPatternParmLinear::GetPrevNext(float x, float y, float *prev, float *next) {
+    float delta[2];
+    delta[0] = cos(this->angle);
+    delta[1] = sin(this->angle);
+
+    prev[0] = x - delta[0];
+    prev[1] = y - delta[1];
+    next[0] = x + delta[0];
+    next[1] = y + delta[1];
 }
-*/
 
 void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
 	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,

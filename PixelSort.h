@@ -40,6 +40,8 @@ struct PixelSortPatternParm {
 struct PixelSortPatternParmLinear {
     PixelSortPatternParm base;
     float angle;
+
+    __host__ __device__ void GetPrevNext(float x, float y, float *prev, float *next);
 };
 
 struct PixelSortPatternParmRadialSpin {
@@ -48,7 +50,7 @@ struct PixelSortPatternParmRadialSpin {
 	float WHRatio;
 	float rotation;
 
-    void GetPrevNext(float x, float y, float *prev, float *next);
+    __host__ __device__ void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmPolygon {
 	PixelSortPatternParm base;
@@ -57,7 +59,7 @@ struct PixelSortPatternParmPolygon {
 	float WHRatio;
 	float rotation;
 
-    void GetPrevNext(float x, float y, float *prev, float *next);
+    __host__ __device__ void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmSpiral {
 	PixelSortPatternParm base;
@@ -66,7 +68,7 @@ struct PixelSortPatternParmSpiral {
 	float WHRatio;
 	float rotation;
 
-    void GetPrevNext(float x, float y, float *prev, float *next);
+    __host__ __device__ void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(Wave)
 	PixelSortPatternParm base;
@@ -74,7 +76,7 @@ struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(
 	float waveHeight;
 	float rotation;
 
-    void GetPrevNext(float x, float y, float *prev, float *next);
+    __host__ __device__ void GetPrevNext(float x, float y, float *prev, float *next);
 };
 struct PixelSortPatternParmOpFlow {
 	PixelSortPatternParm base;
