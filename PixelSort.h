@@ -1,7 +1,8 @@
 #pragma once
 
 enum PixelSortBy {
-    PSB_Hue = 1,
+    PSB_None,
+    PSB_Hue,
     PSB_Saturation,
     PSB_Luminance,
     PSB_R,
@@ -10,7 +11,8 @@ enum PixelSortBy {
 };
 
 enum PixelSortPattern {
-    PSP_Linear = 1,
+    PSP_None,
+    PSP_Linear,
     PSP_Radial_Spin,
     PSP_Polygon,
     PSP_Spiral,
@@ -49,7 +51,7 @@ struct PixelSortPatternParmRadialSpin {
 struct PixelSortPatternParmPolygon {
 	PixelSortPatternParm base;
 	float center[2];
-	float numSides;
+	int numSides;
 	float WHRatio;
 	float rotation;
 };
