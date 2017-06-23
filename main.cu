@@ -2,7 +2,6 @@
 #include <cstdint>
 #include <cstdlib>
 #include <algorithm>
-#include <tuple>
 #include "SyncedMemory.h"
 #include "pgm.h"
 #include "PixelSort.h"
@@ -16,64 +15,85 @@ using namespace std;
 	}\
 }
 
-struct PSPNamePair {
-    PixelSortPatternParm *parm;
-    char *name;
-};
-
-PixelSortPattern init_sort_pattern_parm(int psp_list_cnt, PSPNamePair *psp_list, int argc, char **argv) {
+// Hack
+PixelSortPatternParmLinear psp_linear;
+PixelSortPatternParmRadialSpin psp_radial_spin;
+PixelSortPatternParmPolygon psp_polygon;
+PixelSortPatternParmSpiral psp_spiral;
+PixelSortPatternParmWave psp_wave;
+PixelSortPatternParmOpFlow psp_opflow;
+PixelSortPatternParm * set_sort_pattern(int argc, char **argv) {
     PixelSortPatternParm *parm = nullptr;
 
+    const char *pattern_name[] = {
+        "None",
+        "Linear",
+        "Radial_Spin",
+        "Polygon",
+        "Spiral",
+        "Wave_Sine",
+        "Wave_Triangle",
+        "Wave_Saw_Tooth",
+        "Optical_Flow",
+    };
+
     PixelSortPattern pattern = PSP_None;
-    for (int i = 0; i < psp_list_cnt; ++i) {
-        if (strncmp(argv[0], psp_list[i].name, strlen(psp_list[i].name)) == 0) {
+    int pattern_cnt = sizeof(pattern_name)/sizeof(pattern_name[0]);
+    for (int i = 0; i < pattern_cnt; ++i) {
+        if (strncmp(argv[0], pattern_name[i], strlen(pattern_name[i])) == 0) {
             pattern = (PixelSortPattern) i;
             break;
         }
     }
 
-    parm = psp_list[pattern].parm;
-    parm->pattern = pattern;
     switch(pattern) {
         case PSP_Linear:
-            ((PixelSortPatternParmLinear *)parm)->angle = atof(argv[1]);
+            psp_linear.angle = atof(argv[1]);
+            parm = &psp_linear.base;
             break;
         case PSP_Radial_Spin:
-            ((PixelSortPatternParmRadialSpin *)parm)->center[0] = atof(argv[1]);
-            ((PixelSortPatternParmRadialSpin *)parm)->center[1] = atof(argv[2]);
-            ((PixelSortPatternParmRadialSpin *)parm)->WHRatio = atof(argv[3]);
-            ((PixelSortPatternParmRadialSpin *)parm)->rotation = atof(argv[4]);
+            psp_radial_spin.center[0] = atof(argv[1]);
+            psp_radial_spin.center[1] = atof(argv[2]);
+            psp_radial_spin.WHRatio = atof(argv[3]);
+            psp_radial_spin.rotation = atof(argv[4]);
+            parm = &psp_radial_spin.base;
             break;
         case PSP_Polygon:
-            ((PixelSortPatternParmPolygon *)parm)->center[0] = atof(argv[1]);
-            ((PixelSortPatternParmPolygon *)parm)->center[1] = atof(argv[2]);
-            ((PixelSortPatternParmPolygon *)parm)->numSides = atoi(argv[3]);
-            ((PixelSortPatternParmPolygon *)parm)->WHRatio = atof(argv[4]);
-            ((PixelSortPatternParmPolygon *)parm)->rotation = atof(argv[5]);
+            psp_polygon.center[0] = atof(argv[1]);
+            psp_polygon.center[1] = atof(argv[2]);
+            psp_polygon.numSides = atoi(argv[3]);
+            psp_polygon.WHRatio = atof(argv[4]);
+            psp_polygon.rotation = atof(argv[5]);
+            parm = &psp_polygon.base;
             break;
         case PSP_Spiral:
-            ((PixelSortPatternParmSpiral *)parm)->center[0] = atof(argv[1]);
-            ((PixelSortPatternParmSpiral *)parm)->center[1] = atof(argv[2]);
-            ((PixelSortPatternParmSpiral *)parm)->curveAngle = atof(argv[3]);
-            ((PixelSortPatternParmSpiral *)parm)->WHRatio = atof(argv[4]);
-            ((PixelSortPatternParmSpiral *)parm)->rotation = atof(argv[5]);
+            psp_spiral.center[0] = atof(argv[1]);
+            psp_spiral.center[1] = atof(argv[2]);
+            psp_spiral.curveAngle = atof(argv[3]);
+            psp_spiral.WHRatio = atof(argv[4]);
+            psp_spiral.rotation = atof(argv[5]);
+            parm = &psp_spiral.base;
             break;
         case PSP_Sine:
-            ((PixelSortPatternParmWave *)parm)->waveLength = atof(argv[1]);
-            ((PixelSortPatternParmWave *)parm)->waveHeight = atof(argv[2]);
-            ((PixelSortPatternParmWave *)parm)->rotation = atof(argv[3]);
+            psp_wave.waveLength = atof(argv[1]);
+            psp_wave.waveHeight = atof(argv[2]);
+            psp_wave.rotation = atof(argv[3]);
+            parm = &psp_wave.base;
             break;
         case PSP_Triangle:
-            ((PixelSortPatternParmWave *)parm)->waveLength = atof(argv[1]);
-            ((PixelSortPatternParmWave *)parm)->waveHeight = atof(argv[2]);
-            ((PixelSortPatternParmWave *)parm)->rotation = atof(argv[3]);
+            psp_wave.waveLength = atof(argv[1]);
+            psp_wave.waveHeight = atof(argv[2]);
+            psp_wave.rotation = atof(argv[3]);
+            parm = &psp_wave.base;
             break;
         case PSP_Saw_Tooth:
-            ((PixelSortPatternParmWave *)parm)->waveLength = atof(argv[1]);
-            ((PixelSortPatternParmWave *)parm)->waveHeight = atof(argv[2]);
-            ((PixelSortPatternParmWave *)parm)->rotation = atof(argv[3]);
+            psp_wave.waveLength = atof(argv[1]);
+            psp_wave.waveHeight = atof(argv[2]);
+            psp_wave.rotation = atof(argv[3]);
+            parm = &psp_wave.base;
             break;
         case PSP_Optical_Flow:
+            parm = &psp_opflow.base;
             break;
         default:
             printf("Wrong pattern name: %s\n", argv[0]);
@@ -81,7 +101,8 @@ PixelSortPattern init_sort_pattern_parm(int psp_list_cnt, PSPNamePair *psp_list,
             break;
     }
 
-    return parm->pattern;
+    parm->pattern = pattern;
+    return parm;
 }
 
 PixelSortBy stoPSB(char *str) {
@@ -122,54 +143,8 @@ int main(int argc, char **argv) {
     bool sort_alpha = (bool)atoi(argv[7]);
     char *output_file = argv[8];
 
+    PixelSortPatternParm *pattern_parm = set_sort_pattern(argc - 9, argv + 9);
 
-    MemoryBuffer<PixelSortPatternParmLinear> psp_linear(1);
-    MemoryBuffer<PixelSortPatternParmRadialSpin> psp_radial_spin(1);
-    MemoryBuffer<PixelSortPatternParmPolygon> psp_polygon(1);
-    MemoryBuffer<PixelSortPatternParmSpiral> psp_spiral(1);
-    MemoryBuffer<PixelSortPatternParmWave> psp_wave(1);
-    MemoryBuffer<PixelSortPatternParmOpFlow> psp_opflow(1);
-
-    auto psp_linear_s = psp_linear.CreateSync(1);
-    auto psp_radial_spin_s = psp_radial_spin.CreateSync(1);
-    auto psp_polygon_s = psp_polygon.CreateSync(1);
-    auto psp_spiral_s = psp_spiral.CreateSync(1);
-    auto psp_wave_s = psp_wave.CreateSync(1);
-    auto psp_opflow_s = psp_opflow.CreateSync(1);
-
-    // FIXME: I am a bad guy, if I wrote this way, I have to check every time when I
-    // add new patterns
-    PSPNamePair psp_list[] = {
-        { nullptr, (char *)"None" },
-        { &psp_linear_s.get_cpu_rw()->base, (char *)"Linear" },
-        { &psp_radial_spin_s.get_cpu_rw()->base, (char *)"Radial_Spin" },
-        { &psp_polygon_s.get_cpu_rw()->base, (char *)"Polygon" },
-        { &psp_spiral_s.get_cpu_rw()->base, (char *)"Spiral" },
-        { &psp_wave_s.get_cpu_rw()->base, (char *)"Wave_Sine" },
-        { &psp_wave_s.get_cpu_rw()->base, (char *)"Wave_Triangle" },
-        { &psp_wave_s.get_cpu_rw()->base, (char *)"Wave_Saw_Tooth" },
-        { &psp_opflow_s.get_cpu_rw()->base, (char *)"Optical_Flow" },
-    };
-
-    PixelSortPattern pattern = init_sort_pattern_parm(sizeof(psp_list), psp_list, argc - 9, argv + 9);
-
-    // FIXME: I am a bad guy, if I wrote this way, I have to check every time when I
-    // add new patterns
-    PixelSortPatternParm *psp_list_gpu[] = {
-        nullptr,
-        &psp_linear_s.get_gpu_wo()->base,
-        &psp_radial_spin_s.get_gpu_wo()->base,
-        &psp_polygon_s.get_gpu_wo()->base,
-        &psp_spiral_s.get_gpu_wo()->base,
-        &psp_wave_s.get_gpu_wo()->base,
-        &psp_wave_s.get_gpu_wo()->base,
-        &psp_wave_s.get_gpu_wo()->base,
-        &psp_opflow_s.get_gpu_wo()->base,
-    };
-
-    // NOTE: For cpu test
-    //PixelSortPatternParm *pattern_parm = psp_list[pattern].parm;
-    PixelSortPatternParm *pattern_parm = psp_list_gpu[pattern];
 
 	bool sucb;
 	int wb, hb, cb;
