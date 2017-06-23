@@ -26,6 +26,14 @@
 #include "PixelSort_AE.h"
 #define	FLOAT2FIX2(F)			((PF_Fixed)((F) * 65536 + (((F) < 0) ? -1 : 1)))
 
+// CUDA
+#include <cuda.h>
+
+// forward declaration
+extern "C"
+int callCudaFunc();
+
+bool hasCUDA;
 
 static PF_Err 
 About (	
@@ -40,6 +48,7 @@ About (
 
 	return PF_Err_NONE;
 }
+
 static AEGP_PluginID myAEGPID;
 static PF_Err 
 GlobalSetup (	
@@ -57,7 +66,10 @@ GlobalSetup (
 	out_data->out_flags2 = PF_OutFlag2_NONE;
 	AEGP_SuiteHandler suites(in_data->pica_basicP);
 	suites.UtilitySuite5()->AEGP_RegisterWithAEGP(NULL, out_data->name,&myAEGPID);
-	return PF_Err_NONE;
+	
+	
+return		PF_Err_NONE;
+
 }
 
 static PF_Err 
@@ -176,7 +188,6 @@ ParamsSetup (
 	PF_STRCPY(def.name, "Pattern Options...");
 	def.uu.id = 9;
 	def.flags = PF_ParamFlag_NONE;
-	def.flags = PF_ParamFlag_START_COLLAPSED;
 	if (err = PF_ADD_PARAM(in_data, -1, &def))
 		return err;
 	AEFX_CLR_STRUCT(def);
@@ -337,9 +348,34 @@ ParamsSetup (
 	PF_STRCPY(def.name, "");
 	def.uu.id = 100;
 	def.u.bd.dephault = true;
-	A_char name2[10];
+	A_char name4[20];
+	PF_STRCPY(name4, "Anti Aliasing");
+	def.u.bd.u.nameptr = name4;
+	if (err = PF_ADD_PARAM(in_data, -1, &def))
+		return err;
+	AEFX_CLR_STRUCT(def);
+	out_data->num_params++;
+
+	def.param_type = PF_Param_CHECKBOX;
+	PF_STRCPY(def.name, "");
+	def.uu.id = 101;
+	def.u.bd.dephault = false;
+	A_char name2[20];
 	PF_STRCPY(name2, "Sort Alpha");
 	def.u.bd.u.nameptr = name2;
+	if (err = PF_ADD_PARAM(in_data, -1, &def))
+		return err;
+	AEFX_CLR_STRUCT(def);
+	out_data->num_params++;
+
+	def.param_type = PF_Param_CHECKBOX;
+	PF_STRCPY(def.name, "Use GPU (Need CUDA Support)");
+	def.uu.id = 102;
+	def.u.bd.dephault = false;
+	def.flags = PF_ParamFlag_CANNOT_TIME_VARY|PF_ParamFlag_SUPERVISE;
+	A_char name3[30];
+	PF_STRCPY(name3, "Use GPU");
+	def.u.bd.u.nameptr = name3;
 	if (err = PF_ADD_PARAM(in_data, -1, &def))
 		return err;
 	AEFX_CLR_STRUCT(def);
@@ -353,20 +389,29 @@ ParamsSetup (
 static PF_Err
 ChangeParam(
 PF_InData		*in_data,
-PF_ParamDef		*params[],
 PF_OutData  *out_data,
+PF_ParamDef		*params[],
 PF_LayerDef		*output,
 PF_UserChangedParamExtra *extra){
 	/*AEGP_SuiteHandler suites(in_data->pica_basicP);
 	suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg,
 		"%d == %d", UIP_SortPattern, extra->param_index);*/
 	AEGP_SuiteHandler suites(in_data->pica_basicP);
-	
+	if (extra->param_index == UIP_UseGPU && params[UIP_UseGPU]->u.bd.value) {
+		hasCUDA = callCudaFunc()>0;
+		if (!hasCUDA) {
+			params[UIP_UseGPU]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_UseGPU]->u.bd.value = false;
+			params[UIP_UseGPU]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
+			suites.ParamUtilsSuite3()->PF_UpdateParamUI(in_data->effect_ref, UIP_UseGPU, params[UIP_UseGPU]);
+			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "You don't seem have CUDA, go get a new Nvidia graphics card :))");
+		}else {
+			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "OK, you have CUDA :)");
+		}
+	}
 	if (extra->param_index == UIP_SortPattern) {
 		//change which options to show
-		params[UIP_GroupPatternOptionStart]->flags |= ~PF_ParamFlag_COLLAPSE_TWIRLY;
-		params[UIP_GroupPatternOptionStart]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_RefLayer]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
+		/*params[UIP_RefLayer]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 		params[UIP_Angle]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 		params[UIP_NumSides]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 		params[UIP_CenterPoint]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
@@ -374,7 +419,7 @@ PF_UserChangedParamExtra *extra){
 		params[UIP_WHRatio]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 		params[UIP_WaveLength]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 		params[UIP_WaveHeight]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_Rotation]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
+		params[UIP_Rotation]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;*/
 		switch (params[UIP_SortPattern]->u.pd.value) {
 		case PSP_Linear:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
@@ -474,6 +519,14 @@ PF_UserChangedParamExtra *extra){
 	return PF_Err_NONE;
 }
 
+static PF_Err seqSetup(PF_InData		*in_data,
+	PF_OutData		*out_data,
+	PF_ParamDef		*params[],
+	PF_LayerDef		*output) {
+	AEGP_SuiteHandler suites(in_data->pica_basicP);
+	hasCUDA = callCudaFunc()>0;
+	return		PF_Err_NONE;
+}
 
 DllExport PF_Err 
 EntryPointFuncM (
@@ -489,32 +542,18 @@ EntryPointFuncM (
 	try {
 		switch (cmd) {
 			case PF_Cmd_USER_CHANGED_PARAM:
-				err = ChangeParam(in_data,
-					params,out_data,
-					output, (PF_UserChangedParamExtra*)extra);
+				err = ChangeParam(in_data, out_data, params, output,(PF_UserChangedParamExtra*)extra);
 				break;
 			case PF_Cmd_ABOUT:
-
-				err = About(in_data,
-							out_data,
-							params,
-							output);
+				err = About(in_data, out_data, params, output);
 				break;
 				
 			case PF_Cmd_GLOBAL_SETUP:
-
-				err = GlobalSetup(	in_data,
-									out_data,
-									params,
-									output);
+				err = GlobalSetup(in_data, out_data, params, output);
 				break;
 				
 			case PF_Cmd_PARAMS_SETUP:
-
-				err = ParamsSetup(	in_data,
-									out_data,
-									params,
-									output);
+				err = ParamsSetup(in_data, out_data, params, output);
 				break;
 				
 			/*case PF_Cmd_FRAME_SETUP:
@@ -522,11 +561,35 @@ EntryPointFuncM (
 				err = PF_Err_NONE;
 				break;*/
 
+			case PF_Cmd_UPDATE_PARAMS_UI:
+				PF_UserChangedParamExtra temp;
+				temp.param_index = UIP_SortPattern;
+				err = ChangeParam(in_data, out_data, params, output, &temp);
+				break;
+
+			case PF_Cmd_SEQUENCE_SETUP:
+				err = seqSetup(in_data,out_data,	params,output);
+				break;
+			case PF_Cmd_SEQUENCE_RESETUP:
+				err = seqSetup(in_data, out_data, params, output);
+				break;
 
 			case PF_Cmd_RENDER:
 				//TODO: Real render function
-				AEGP_SuiteHandler suites(in_data->pica_basicP);
-				suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
+				if (hasCUDA && params[UIP_UseGPU]->u.bd.value) {
+					//Render in GPU
+					AEGP_SuiteHandler suites(in_data->pica_basicP);
+					PF_Pixel tempColor;
+					tempColor.alpha = (A_u_char)255;
+					tempColor.red = (A_u_char)0;
+					tempColor.green = (A_u_char)255;
+					tempColor.blue = (A_u_char)0;
+					suites.FillMatteSuite2()->fill(in_data->effect_ref,&tempColor,&(output->extent_hint), output);
+				}else{
+					//Fall to CPU Rendering
+					AEGP_SuiteHandler suites(in_data->pica_basicP);
+					suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
+				}
 				break;
 		}
 	}
