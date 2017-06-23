@@ -91,7 +91,9 @@ typedef short int			int16;
 		UIP_Rotation,
 		UIP_GroupPatternOptionEnd,
 		UIP_GroupPatternEnd,
-		UIP_SortAlpha
+		UIP_AntiAliasing,
+		UIP_SortAlpha,
+		UIP_UseGPU
 	};
 
 
