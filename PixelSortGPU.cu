@@ -11,11 +11,42 @@ __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
 #define debug_print(...)
 #endif
 
-void PixelSortPatternParmLinear::FilledOffset(const float x, const float y, const float w, const float h, float *output) {
-    float delta[2];
+#define OUPUT_POINT_MAX 1000
 
-    delta[0] = cos(((PixelSortPatternParmLinear *)this)->angle);
-    delta[1] = sin(((PixelSortPatternParmLinear *)this)->angle);
+// TODO: I think these code is GPU-unfriendly
+__global__  void GetListToSort(PixelSortPatternParmLinear *linear, const float x, const float y, const float w, const float h, int *point_cnt, float *output) {
+    float delta[2], last[2];
+    int cnt = 1;
+
+    delta[0] = cos(linear->angle);
+    delta[1] = sin(linear->angle);
+
+    output[0] = x;
+    output[1] = y;
+
+    // prev
+    last[0] = x - delta[0];
+    last[1] = y - delta[1];
+    while (cnt < OUPUT_POINT_MAX && last[0] > 0 && last[0] < w && last[1] > 0 && last[1] < h) {
+        output[cnt*2] = last[0];
+        output[cnt*2+1] = last[1];
+        ++cnt;
+        last[0] -= delta[0];
+        last[1] -= delta[1];
+    }
+
+    // next
+    last[0] = x + delta[0];
+    last[1] = y + delta[1];
+    while (cnt < OUPUT_POINT_MAX && last[0] > 0 && last[0] < w && last[1] > 0 && last[1] < h) {
+        output[cnt*2] = last[0];
+        output[cnt*2+1] = last[1];
+        ++cnt;
+        last[0] += delta[0];
+        last[1] += delta[1];
+    }
+
+    *point_cnt = cnt;
 }
 
 void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
@@ -82,6 +113,33 @@ void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
             break;
 	}
 
+    // Test code
+    {
+        int *point_cnt = (int *)malloc(sizeof(int));
+        int *point_cnt_gpu;
+
+        float *sort_list = (float *)malloc(sizeof(float)*OUPUT_POINT_MAX*2);
+        float *sort_list_gpu;
+
+        cudaMalloc(&sort_list_gpu, sizeof(float) * OUPUT_POINT_MAX*2);
+        cudaMalloc(&point_cnt_gpu, sizeof(int));
+
+        debug_print("w:%d, h:%d\n", width, height);
+        GetListToSort<<<1, 1>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, 500.0f, 300.0f, (float)width, (float)height, point_cnt_gpu, sort_list_gpu);
+
+        cudaMemcpy(point_cnt, point_cnt_gpu, sizeof(int), cudaMemcpyDeviceToHost);
+        cudaMemcpy(sort_list, sort_list_gpu, sizeof(float)*2*(*point_cnt), cudaMemcpyDeviceToHost);
+
+        printf("%d\n", *point_cnt);
+        for (int i = 0; i < *point_cnt; ++i) {
+            printf("%d: (%f, %f)\n", i, sort_list[2*i], sort_list[2*i+1]);
+        }
+
+        free(sort_list);
+        cudaFree(sort_list_gpu);
+        free(point_cnt);
+        cudaFree(point_cnt_gpu);
+    }
     
 
     cudaMemcpy(output, input, width*height*sizeof(Pixel), cudaMemcpyDeviceToDevice);
