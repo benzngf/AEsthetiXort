@@ -40,8 +40,6 @@ struct PixelSortPatternParm {
 struct PixelSortPatternParmLinear {
     PixelSortPatternParm base;
     float angle;
-
-    __host__ __device__ void GetListToSort(const float x, const float y, const float w, const float h, int *point_cnt, float *output);
 };
 
 struct PixelSortPatternParmRadialSpin {
@@ -49,8 +47,6 @@ struct PixelSortPatternParmRadialSpin {
     float center[2];
 	float WHRatio;
 	float rotation;
-
-    __host__ __device__ void GetListToSort(const float x, const float y, const float w, const float h, int *point_cnt, float *output);
 };
 struct PixelSortPatternParmPolygon {
 	PixelSortPatternParm base;
@@ -58,8 +54,6 @@ struct PixelSortPatternParmPolygon {
 	int numSides;
 	float WHRatio;
 	float rotation;
-
-    __host__ __device__ void GetListToSort(const float x, const float y, const float w, const float h, int *point_cnt, float *output);
 };
 struct PixelSortPatternParmSpiral {
 	PixelSortPatternParm base;
@@ -67,16 +61,12 @@ struct PixelSortPatternParmSpiral {
 	float curveAngle;
 	float WHRatio;
 	float rotation;
-
-    __host__ __device__ void GetListToSort(const float x, const float y, const float w, const float h, int *point_cnt, float *output);
 };
 struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(Wave)
 	PixelSortPatternParm base;
 	float waveLength;
 	float waveHeight;
 	float rotation;
-
-    __host__ __device__ void GetListToSort(const float x, const float y, const float w, const float h, int *point_cnt, float *output);
 };
 struct PixelSortPatternParmOpFlow {
 	PixelSortPatternParm base;
