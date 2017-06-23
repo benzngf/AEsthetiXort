@@ -5,10 +5,16 @@
 __device__ __host__ int CeilDiv(int a, int b) { return (a-1)/b + 1; }
 __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
 
+#ifdef DEBUG
+#define debug_print(...) fprintf(stderr, __VA_ARGS__) 
+#else
+#define debug_print(...)
+#endif
+
 void PixelSortPatternParmLinear::GetPrevNext(float x, float y, float *prev, float *next) {
     float delta[2];
-    delta[0] = cos(this->angle);
-    delta[1] = sin(this->angle);
+    delta[0] = cos(((PixelSortPatternParmLinear *)this)->angle);
+    delta[1] = sin(((PixelSortPatternParmLinear *)this)->angle);
 
     prev[0] = x - delta[0];
     prev[1] = y - delta[1];
@@ -22,59 +28,60 @@ void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
 
 	switch (pattern_parm->pattern) {
         case PSP_Linear:
-            printf("PSP_Linear (%d)\n", pattern_parm->pattern);
-            printf("angle: %f\n", ((PixelSortPatternParmLinear *)pattern_parm)->angle);
+            debug_print("PSP_Linear (%d)\n", pattern_parm->pattern);
+            debug_print("angle: %f\n", ((PixelSortPatternParmLinear *)pattern_parm)->angle);
             break;
         case PSP_Radial_Spin:
-            printf("PSP_Radial_Spin (%d)\n", pattern_parm->pattern);
-            printf("center: (%f, %f)\n", 
+            debug_print("PSP_Radial_Spin (%d)\n", pattern_parm->pattern);
+            debug_print("center: (%f, %f)\n", 
                     ((PixelSortPatternParmRadialSpin *)pattern_parm)->center[0],
                     ((PixelSortPatternParmRadialSpin *)pattern_parm)->center[1]);
-            printf("WHRatio: %f\n", ((PixelSortPatternParmRadialSpin *)pattern_parm)->WHRatio);
-            printf("rotation: %f\n", ((PixelSortPatternParmRadialSpin *)pattern_parm)->rotation);
+            debug_print("WHRatio: %f\n", ((PixelSortPatternParmRadialSpin *)pattern_parm)->WHRatio);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmRadialSpin *)pattern_parm)->rotation);
             break;
         case PSP_Polygon:
-            printf("PSP_Polygon (%d)\n", pattern_parm->pattern);
-            printf("center: (%f, %f)\n", 
+            debug_print("PSP_Polygon (%d)\n", pattern_parm->pattern);
+            debug_print("center: (%f, %f)\n", 
                     ((PixelSortPatternParmPolygon *)pattern_parm)->center[0],
                     ((PixelSortPatternParmPolygon *)pattern_parm)->center[1]);
-            printf("numSides: %d\n", ((PixelSortPatternParmPolygon *)pattern_parm)->numSides);
-            printf("WHRatio: %f\n", ((PixelSortPatternParmPolygon *)pattern_parm)->WHRatio);
-            printf("rotation: %f\n", ((PixelSortPatternParmPolygon *)pattern_parm)->rotation);
+            debug_print("numSides: %d\n", ((PixelSortPatternParmPolygon *)pattern_parm)->numSides);
+            debug_print("WHRatio: %f\n", ((PixelSortPatternParmPolygon *)pattern_parm)->WHRatio);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmPolygon *)pattern_parm)->rotation);
             break;
         case PSP_Spiral:
-            printf("PSP_Spiral (%d)\n", pattern_parm->pattern);
-            printf("center: (%f, %f)\n", 
+            debug_print("PSP_Spiral (%d)\n", pattern_parm->pattern);
+            debug_print("center: (%f, %f)\n", 
                     ((PixelSortPatternParmSpiral *)pattern_parm)->center[0],
                     ((PixelSortPatternParmSpiral *)pattern_parm)->center[1]);
-            printf("curveAngle: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->curveAngle);
-            printf("WHRatio: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->WHRatio);
-            printf("rotation: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->rotation);
+            debug_print("curveAngle: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->curveAngle);
+            debug_print("WHRatio: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->WHRatio);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->rotation);
             break;
         case PSP_Sine:
-            printf("PSP_Sine (%d)\n", pattern_parm->pattern);
-            printf("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
-            printf("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
-            printf("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
+            debug_print("PSP_Sine (%d)\n", pattern_parm->pattern);
+            debug_print("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
+            debug_print("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
             break;
         case PSP_Triangle:
-            printf("PSP_Triangle (%d)\n", pattern_parm->pattern);
-            printf("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
-            printf("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
-            printf("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
+            debug_print("PSP_Triangle (%d)\n", pattern_parm->pattern);
+            debug_print("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
+            debug_print("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
             break;
         case PSP_Saw_Tooth:
-            printf("PSP_Saw_Tooth (%d)\n", pattern_parm->pattern);
-            printf("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
-            printf("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
-            printf("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
+            debug_print("PSP_Saw_Tooth (%d)\n", pattern_parm->pattern);
+            debug_print("waveLength: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveLength);
+            debug_print("waveheight: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->waveHeight);
+            debug_print("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
             break;
         case PSP_Optical_Flow:
-            printf("PSP_Optical_Flow (%d)\n", pattern_parm->pattern);
+            debug_print("PSP_Optical_Flow (%d)\n", pattern_parm->pattern);
             break;
 
         default:
             break;
 	}
+
     cudaMemcpy(output, input, width*height*sizeof(Pixel), cudaMemcpyDeviceToDevice);
 }

@@ -1,4 +1,6 @@
-CFLAG=-g -O2 -std=c++11
+CFLAG = -std=c++11
+#CFLAG += -O2
+CFLAG += -g -DDEBUG #--compiler-options='-Wall'
 
 INPUT_IMG=trump.ppm
 SORT_BY=Luminance
