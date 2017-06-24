@@ -204,6 +204,24 @@ ParamsSetup (
 	AEFX_CLR_STRUCT(def);
 	out_data->num_params++;
 
+	def.param_type = PF_Param_FLOAT_SLIDER;
+	PF_STRCPY(def.name, "Motion Time Step");
+	def.uu.id = 50;
+	def.flags = 0;
+	def.u.fs_d.precision = 1;
+	def.u.fs_d.dephault = 1;
+	def.u.fs_d.slider_min = 1;
+	def.u.fs_d.slider_max = 50;
+	def.u.fs_d.valid_max = 1;
+	def.u.fs_d.valid_min = 50;
+	def.u.fs_d.display_flags = PF_ValueDisplayFlag_NONE;
+	//def.ui_flags = PF_PUI_NONE;
+	def.ui_flags = PF_PUI_DISABLED; //hide this parameter(inactive)
+	if (err = PF_ADD_PARAM(in_data, -1, &def))
+		return err;
+	AEFX_CLR_STRUCT(def);
+	out_data->num_params++;
+
 	def.param_type = PF_Param_ANGLE;
 	PF_STRCPY(def.name, "Angle");
 	def.uu.id = 11;
@@ -416,6 +434,7 @@ PF_UserChangedParamExtra *extra){
 		switch (params[UIP_SortPattern]->u.pd.value) {
 		case PSP_Linear:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_NONE;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_DISABLED;
@@ -427,6 +446,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Radial_Spin:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_NONE;
@@ -438,6 +458,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Polygon:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_NONE;
 			params[UIP_NumSides]->ui_flags = PF_PUI_NONE;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_NONE;
@@ -449,6 +470,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Spiral:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_NONE;
@@ -460,6 +482,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Sine:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_DISABLED;
@@ -471,6 +494,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Triangle:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_DISABLED;
@@ -482,6 +506,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Saw_Tooth:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_DISABLED;
@@ -493,6 +518,7 @@ PF_UserChangedParamExtra *extra){
 			break;
 		case PSP_Optical_Flow:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_NONE;
+			params[UIP_TimeStep]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_Angle]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_NumSides]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_CenterPoint]->ui_flags = PF_PUI_DISABLED;
@@ -571,15 +597,25 @@ EntryPointFuncM (
 					//Render in GPU
 					Pixel** GPUinput;
 					PixelSortPatternParm* PatternParam;
-					prepareParams(in_data, out_data, params, &PatternParam);
+					PixelSortPatternParm** PatternParamH = &PatternParam;
+					prepareParams(in_data, out_data, params, PatternParamH);
 					prepareGPUinput(in_data, out_data, params, GPUinput);
 					//CUDA CALL
 
 					//END CUDA CALL
-					disposeParams(&PatternParam);
+					disposeParams(in_data, PatternParamH);
 					copyGPUresult(in_data, out_data, output, GPUinput);
 				}else{
 					//Fall to CPU Rendering
+					//Render in GPU
+					PixelSortPatternParm* PatternParam;
+					PixelSortPatternParm** PatternParamH = &PatternParam;
+					prepareParams(in_data, out_data, params, PatternParamH);
+					//RENDER
+					PixelSortCPU(in_data, out_data, params,output,*PatternParamH);
+					//END RENDER
+					disposeParams(in_data, PatternParamH);
+					/*
 					AEGP_SuiteHandler suites(in_data->pica_basicP);
 					PF_Pixel tempColor;
 					tempColor.alpha = (A_u_char)255;
@@ -587,6 +623,7 @@ EntryPointFuncM (
 					tempColor.green = (A_u_char)255;
 					tempColor.blue = (A_u_char)0;
 					suites.FillMatteSuite2()->fill(in_data->effect_ref, &tempColor, &(output->extent_hint), output);
+					*/
 					//suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
 				}
 				break;

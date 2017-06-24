@@ -29,6 +29,7 @@ struct Pixel {/*0.0f-255.0f*/
         };
         float e[4];
     };
+	float key;
 };
 
 
@@ -68,10 +69,7 @@ struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(
 	float waveHeight;
 	float rotation;
 };
-struct PixelSortPatternParmOpFlow {
-	PixelSortPatternParm base;
-	//TBD
-};
+
 
 
 void PixelSortCPU(const Pixel *input, int width, int height, Pixel *output,
