@@ -113,7 +113,7 @@ ParamsSetup (
 	def.uu.id = 3;
 	def.flags = 0;
 	def.u.fs_d.precision = 1;
-	def.u.fs_d.dephault = 100;
+	def.u.fs_d.dephault = 10;
 	def.u.fs_d.slider_min = 0;
 	def.u.fs_d.slider_max = 100;
 	def.u.fs_d.valid_max = 100;
@@ -129,7 +129,7 @@ ParamsSetup (
 	def.uu.id = 4;
 	def.flags = 0;
 	def.u.fs_d.precision = 1;
-	def.u.fs_d.dephault = 100;
+	def.u.fs_d.dephault = 90;
 	def.u.fs_d.slider_min = 0;
 	def.u.fs_d.slider_max = 100;
 	def.u.fs_d.valid_max = 100;
@@ -151,7 +151,7 @@ ParamsSetup (
 	def.param_type = PF_Param_CHECKBOX;
 	PF_STRCPY(def.name, "");
 	def.uu.id = 6;
-	def.u.bd.dephault = true;
+	def.u.bd.dephault = false;
 	A_char name[10];
 	PF_STRCPY(name, "Reverse Sort Order");
 	def.u.bd.u.nameptr = name;
@@ -370,9 +370,11 @@ ParamsSetup (
 
 	def.param_type = PF_Param_CHECKBOX;
 	PF_STRCPY(def.name, "Use GPU (Need CUDA Support)");
+	hasCUDA = callCudaFunc()>0;
 	def.uu.id = 102;
-	def.u.bd.dephault = false;
+	def.u.bd.dephault = hasCUDA;
 	def.flags = PF_ParamFlag_CANNOT_TIME_VARY|PF_ParamFlag_SUPERVISE;
+	if (!hasCUDA) def.ui_flags = PF_PUI_DISABLED;
 	A_char name3[30];
 	PF_STRCPY(name3, "Use GPU");
 	def.u.bd.u.nameptr = name3;
@@ -406,20 +408,11 @@ PF_UserChangedParamExtra *extra){
 			suites.ParamUtilsSuite3()->PF_UpdateParamUI(in_data->effect_ref, UIP_UseGPU, params[UIP_UseGPU]);
 			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "You don't seem have CUDA, go get a new Nvidia graphics card :))");
 		}else {
-			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "OK, you have CUDA :)");
+			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "噢耶你超棒你有支援CUDAㄉ顯卡 :)");
 		}
 	}
 	if (extra->param_index == UIP_SortPattern) {
 		//change which options to show
-		/*params[UIP_RefLayer]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_Angle]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_NumSides]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_CenterPoint]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_CurveAngle]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_WHRatio]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_WaveLength]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_WaveHeight]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
-		params[UIP_Rotation]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;*/
 		switch (params[UIP_SortPattern]->u.pd.value) {
 		case PSP_Linear:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
@@ -523,8 +516,6 @@ static PF_Err seqSetup(PF_InData		*in_data,
 	PF_OutData		*out_data,
 	PF_ParamDef		*params[],
 	PF_LayerDef		*output) {
-	AEGP_SuiteHandler suites(in_data->pica_basicP);
-	hasCUDA = callCudaFunc()>0;
 	return		PF_Err_NONE;
 }
 
@@ -578,17 +569,25 @@ EntryPointFuncM (
 				//TODO: Real render function
 				if (hasCUDA && params[UIP_UseGPU]->u.bd.value) {
 					//Render in GPU
+					Pixel** GPUinput;
+					PixelSortPatternParm* PatternParam;
+					prepareParams(in_data, out_data, params, &PatternParam);
+					prepareGPUinput(in_data, out_data, params, GPUinput);
+					//CUDA CALL
+
+					//END CUDA CALL
+					disposeParams(&PatternParam);
+					copyGPUresult(in_data, out_data, output, GPUinput);
+				}else{
+					//Fall to CPU Rendering
 					AEGP_SuiteHandler suites(in_data->pica_basicP);
 					PF_Pixel tempColor;
 					tempColor.alpha = (A_u_char)255;
 					tempColor.red = (A_u_char)0;
 					tempColor.green = (A_u_char)255;
 					tempColor.blue = (A_u_char)0;
-					suites.FillMatteSuite2()->fill(in_data->effect_ref,&tempColor,&(output->extent_hint), output);
-				}else{
-					//Fall to CPU Rendering
-					AEGP_SuiteHandler suites(in_data->pica_basicP);
-					suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
+					suites.FillMatteSuite2()->fill(in_data->effect_ref, &tempColor, &(output->extent_hint), output);
+					//suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
 				}
 				break;
 		}

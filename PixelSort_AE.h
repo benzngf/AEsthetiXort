@@ -100,7 +100,10 @@ typedef short int			int16;
 #ifdef __cplusplus
 	extern "C" {
 #endif
-
+PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** out_patternparam);
+PF_Err disposeParams(PixelSortPatternParm** out_patternparam);
+PF_Err prepareGPUinput(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], Pixel** &GPUinputH);
+PF_Err copyGPUresult(PF_InData *in_data, PF_OutData *out_data, PF_LayerDef *output, Pixel** GPUinputH);
 DllExport	PF_Err 
 EntryPointFuncM(	
 	PF_Cmd			cmd,
