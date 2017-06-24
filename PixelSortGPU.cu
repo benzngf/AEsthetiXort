@@ -63,7 +63,7 @@ __device__ __host__ int getSaturation(const int R, const int G, const int B) {
 #define debug_print(...)
 #endif
 
-#define OUPUT_POINT_MAX 1000
+#define OUPUT_POINT_MAX 100
 
 //#define PREDEBUG
 
@@ -194,8 +194,33 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
         }
 
         // Sort
-        thrust::stable_sort_by_key(thrust::device, converted_sort_list_gpu, converted_sort_list_gpu + point_cnt_gpu, pixel_list_gpu);
+        //thrust::sort_by_key(thrust::device, converted_sort_list_gpu, converted_sort_list_gpu + point_cnt_gpu, pixel_list_gpu);
+        
+        for (int i = 0; i < point_cnt_gpu; i++) {
+            for (int j = 0; j < point_cnt_gpu - i; j++){
+                if (converted_sort_list_gpu[j] > converted_sort_list_gpu[j+1]) {
+                    int temp = converted_sort_list_gpu[j];
+                    converted_sort_list_gpu[j] = converted_sort_list_gpu[j+1];
+                    converted_sort_list_gpu[j+1] = temp;
 
+                    temp = pixel_list_gpu[j].r;
+                    pixel_list_gpu[j].r = pixel_list_gpu[j+1].r;
+                    pixel_list_gpu[j+1].r = temp;
+
+                    temp = pixel_list_gpu[j].g;
+                    pixel_list_gpu[j].g = pixel_list_gpu[j+1].g;
+                    pixel_list_gpu[j+1].g = temp;
+
+                    temp = pixel_list_gpu[j].b;
+                    pixel_list_gpu[j].b = pixel_list_gpu[j+1].b;
+                    pixel_list_gpu[j+1].b = temp;
+
+                    temp = pixel_list_gpu[j].a;
+                    pixel_list_gpu[j].a = pixel_list_gpu[j+1].a;
+                    pixel_list_gpu[j+1].a = temp;
+                }
+            }
+        }
         // Fill value: order
 
         output[pixelid].r = pixel_list_gpu[order_gpu].r;
@@ -250,7 +275,7 @@ void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
             debug_print("PSP_Linear (%d)\n", pattern_parm->pattern);
             debug_print("angle: %f\n", ((PixelSortPatternParmLinear *)pattern_parm)->angle);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmLinear));
-            cudaMemcpy(&pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmLinear), cudaMemcpyHostToDevice);
+            cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmLinear), cudaMemcpyHostToDevice);
 #ifndef PREDEBUG            
             dim3 gdim(CeilDiv(width, 32), CeilDiv(height, 16)), bdim(32, 16);
             SortFromList<<<gdim, bdim>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, 
