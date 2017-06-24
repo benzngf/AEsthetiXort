@@ -1,13 +1,13 @@
 #include "PixelSort_AE.h"
+#include "opFlow.h"
+
+PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *params[], PF_LayerDef	*output, PixelSortPatternParm *pattern_parm) {
+	return PF_Err_NONE;
+}
 
 
-void PixelSortCPU(const Pixel *input, int width, int height, Pixel *output,
-	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
-	PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha) {}
 
-
-
-PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** out_patternparam) {
+PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** &out_patternparam) {
 	switch (params[UIP_SortPattern]->u.pd.value) {
 	case PSP_Linear: {
 		PixelSortPatternParmLinear* temp = (PixelSortPatternParmLinear*)malloc(sizeof(PixelSortPatternParmLinear));
@@ -47,37 +47,79 @@ PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *para
 		PixelSortPatternParmWave* temp = (PixelSortPatternParmWave*)malloc(sizeof(PixelSortPatternParmWave));
 		*out_patternparam = (PixelSortPatternParm*)temp;
 		temp->base.pattern = PSP_Sine;
-		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
-		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
 		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		AEGP_SuiteHandler suites(in_data->pica_basicP);
+		float sF2 = (float)suites.ANSICallbacksSuite1()->sin(temp->rotation);
+		sF2 *= sF2;
+		float cF2 = (float)suites.ANSICallbacksSuite1()->cos(temp->rotation);
+		cF2 *= cF2;
+		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den * cF2 + params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den * sF2);
+		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den *cF2 + params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den *sF2);
 		break; }
 	case PSP_Triangle: {
 		PixelSortPatternParmWave* temp = (PixelSortPatternParmWave*)malloc(sizeof(PixelSortPatternParmWave));
 		*out_patternparam = (PixelSortPatternParm*)temp;
 		temp->base.pattern = PSP_Triangle;
-		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
-		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
 		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		AEGP_SuiteHandler suites(in_data->pica_basicP);
+		float sF2 = (float)suites.ANSICallbacksSuite1()->sin(temp->rotation);
+		sF2 *= sF2;
+		float cF2 = (float)suites.ANSICallbacksSuite1()->cos(temp->rotation);
+		cF2 *= cF2;
+		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den * cF2 + params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den * sF2);
+		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den *cF2 + params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den *sF2);
 		break; }
 	case PSP_Saw_Tooth: {
 		PixelSortPatternParmWave* temp = (PixelSortPatternParmWave*)malloc(sizeof(PixelSortPatternParmWave));
 		*out_patternparam = (PixelSortPatternParm*)temp;
 		temp->base.pattern = PSP_Saw_Tooth;
-		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
-		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den);
 		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		AEGP_SuiteHandler suites(in_data->pica_basicP);
+		float sF2 = (float)suites.ANSICallbacksSuite1()->sin(temp->rotation);
+		sF2 *= sF2;
+		float cF2 = (float)suites.ANSICallbacksSuite1()->cos(temp->rotation);
+		cF2 *= cF2;
+		temp->waveLength = (float)(params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den * cF2 + params[UIP_WaveLength]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den * sF2);
+		temp->waveHeight = (float)(params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_y.num / in_data->downsample_y.den *cF2 + params[UIP_WaveHeight]->u.fs_d.value*in_data->downsample_x.num / in_data->downsample_x.den *sF2);
 		break; }
 	case PSP_Optical_Flow: {
-		PixelSortPatternParmOpFlow* temp = (PixelSortPatternParmOpFlow*)malloc(sizeof(PixelSortPatternParmOpFlow));
-		*out_patternparam = (PixelSortPatternParm*)temp;
-		temp->base.pattern = PSP_Optical_Flow;
+		AEGP_SuiteHandler suites(in_data->pica_basicP);
+		PixelSortPatternParmOpFlow** temp = (PixelSortPatternParmOpFlow**)suites.HandleSuite1()->host_new_handle(sizeof(PixelSortPatternParmOpFlow));
+		out_patternparam = (PixelSortPatternParm**)temp;
+		(*temp)->base.pattern = PSP_Optical_Flow;
+		//get the two frames
+		PF_ParamDef *lp1, *lp2;
+		lp1 = new PF_ParamDef();
+		lp2 = new PF_ParamDef();
+		AEFX_CLR_STRUCT(*lp1);
+		AEFX_CLR_STRUCT(*lp2);
+		PF_Err	 err = PF_Err_NONE;
+		err = PF_CHECKOUT_PARAM(in_data, UIP_RefLayer, (in_data->current_time), in_data->time_step, in_data->time_scale, lp1);
+		if(!err) err = PF_CHECKOUT_PARAM(in_data, UIP_RefLayer, (in_data->current_time + (A_long)(params[UIP_WaveLength]->u.fs_d.value * in_data->time_step)), in_data->time_step, in_data->time_scale, lp2);
+		if (!err) {
+			(*temp)->seq.frameWidth = lp1->u.ld.width * DOWNX;
+			(*temp)->seq.frameHeight = lp1->u.ld.height * DOWNY;
+			for ((*temp)->seq.blockWidth = 1; true; (*temp)->seq.blockWidth *= 2) {
+				(*temp)->seq.numHBlock = ((*temp)->seq.frameWidth / (*temp)->seq.blockWidth) + 1;
+				(*temp)->seq.numVBlock = ((*temp)->seq.frameHeight / (*temp)->seq.blockWidth) + 1;
+				if ((*temp)->seq.numHBlock*	(*temp)->seq.numVBlock <= 15000) break;
+			}
+			err = calcOpticFlow(in_data, &(lp2->u.ld), &(lp1->u.ld), &((*temp)->seq));
+		}
+		else {
+			(*temp)->seq.frameWidth = 0;
+			(*temp)->seq.frameHeight = 0;
+			(*temp)->seq.numHBlock = 0;
+			(*temp)->seq.numVBlock = 0;
+			(*temp)->seq.blockWidth = 0;
+		}
 		break; }
 	default:
 		break;
 	}
 	return PF_Err_NONE;
 }
-PF_Err disposeParams(PixelSortPatternParm** out_patternparam) {
+PF_Err disposeParams(PF_InData *in_data, PixelSortPatternParm** out_patternparam) {
 	switch ((*out_patternparam)->pattern) {
 	case PSP_Linear: {
 		PixelSortPatternParmLinear* temp = (PixelSortPatternParmLinear*)*out_patternparam;
@@ -108,8 +150,8 @@ PF_Err disposeParams(PixelSortPatternParm** out_patternparam) {
 		free(temp);
 		break; }
 	case PSP_Optical_Flow: {
-		PixelSortPatternParmOpFlow* temp = (PixelSortPatternParmOpFlow*)*out_patternparam;
-		free(temp);
+		AEGP_SuiteHandler suites(in_data->pica_basicP);
+		suites.HandleSuite1()->host_dispose_handle((PF_Handle)out_patternparam);
 		break; }
 	default:
 		break;

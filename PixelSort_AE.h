@@ -81,6 +81,7 @@ typedef short int			int16;
 		UIP_SortPattern,
 		UIP_GroupPatternOptionStart,
 		UIP_RefLayer,
+		UIP_TimeStep,
 		UIP_Angle,
 		UIP_NumSides,
 		UIP_CenterPoint,
@@ -100,10 +101,11 @@ typedef short int			int16;
 #ifdef __cplusplus
 	extern "C" {
 #endif
-PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** out_patternparam);
-PF_Err disposeParams(PixelSortPatternParm** out_patternparam);
+PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** &out_patternparam);
+PF_Err disposeParams(PF_InData *in_data, PixelSortPatternParm** out_patternparam);
 PF_Err prepareGPUinput(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], Pixel** &GPUinputH);
 PF_Err copyGPUresult(PF_InData *in_data, PF_OutData *out_data, PF_LayerDef *output, Pixel** GPUinputH);
+PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *params[], PF_LayerDef	*output, PixelSortPatternParm *pattern_parm);
 DllExport	PF_Err 
 EntryPointFuncM(	
 	PF_Cmd			cmd,

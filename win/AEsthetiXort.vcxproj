@@ -169,6 +169,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Layer_transformer.h" />
+    <ClInclude Include="..\opFlow.h" />
     <ClInclude Include="..\PixelSort.h" />
     <ClInclude Include="..\PixelSort_AE.h" />
     <ClInclude Include="..\..\..\Headers\A.h" />
@@ -201,6 +202,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     </ClCompile>
     <ClCompile Include="..\..\..\Util\MissingSuiteError.cpp" />
     <ClCompile Include="..\Layer_transformer.cpp" />
+    <ClCompile Include="..\optical_flow.cpp" />
     <ClCompile Include="..\PixelSort.cpp" />
     <ClCompile Include="..\Main.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
