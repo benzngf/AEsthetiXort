@@ -28,7 +28,7 @@ __device__ __host__ __forceinline__ float absolute(float x){
 }
 __device__ __host__ __forceinline__ float angle_nomralize(float x){
     if (x < 0.0)
-        return x + 360.0;
+        return x + 6.0;
     return x;
 }
 __device__ __host__ float getLuminance(const float R, const float G, const float B) {
@@ -48,12 +48,12 @@ __device__ __host__ float getHue(const float R, const float G, const float B) {
     if (C > -0.1f && C < 0.1f) //C == 0.0f
         Result = 0.0f;
     else if (M == R)
-        Result = (G - B) / C;
+        Result = angle_nomralize((G - B) / C);
     else if (M == G)
         Result = 2.0f + ( (B - R) / C );
     else if (M == B)
         Result = 4.0f + ( (R - G) / C );
-    return angle_nomralize(60.0f*Result);
+    return 60.0f*Result;
 }
 __device__ __host__ float getSaturation(const float R, const float G, const float B) {
     float M = MaxRGB(R, G, B) / 255.0f;
@@ -133,9 +133,9 @@ __device__  void GetListToSort(
 #define PIXELXY(x, y) (input[int(x) + int(y)*int(w)])
 #define OUTPUTXY(x, y) (output[int(x) + int(y)*int(w)])
 #define UPDATE_OUTPUT(x, y, red, green, blue) \
-    OUTPUTXY(x, y).r = red; \
-    OUTPUTXY(x, y).g = green; \
-    OUTPUTXY(x, y).b = blue; 
+    OUTPUTXY(x, y).r = PIXELXY(x, y).r; \
+    OUTPUTXY(x, y).g = PIXELXY(x, y).g; \
+    OUTPUTXY(x, y).b = PIXELXY(x, y).b; 
 
     UPDATE_OUTPUT(x, y, 255, 255, 255);
     
