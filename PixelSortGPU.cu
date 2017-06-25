@@ -39,9 +39,9 @@ __device__ __host__ int getHue(const int R, const int G, const int B) {
     else if (M == R)
         return 60 * ( ( (G - B) / C ) % 6 );
     else if (M == G)
-        return 2 + ( (B - R) / C );
+        return 60 *(2 + ( (B - R) / C ));
     else if (M == B)
-        return 4 + ( (R - G) / C );
+        return 60 *(4 + ( (R - G) / C ));
     return 0;
 }
 __device__ __host__ int getSaturation(const int R, const int G, const int B) {
@@ -55,6 +55,50 @@ __device__ __host__ int getSaturation(const int R, const int G, const int B) {
     else
         return C / (1 - absolute(2 * L - 1));
 }
+// For the following 3 functions, adapted from: https://www.jiuzhang.com/solutions/kth-largest-element/
+__device__ __host__ int kthLargestPartition(int nums[], int l, int r, Pixel pixel_array[]) {
+
+    int left = l, right = r;
+    int pivot = nums[left];
+    Pixel temp = pixel_array[left];
+       
+
+    while (left < right) {
+        while (left < right && nums[right] >= pivot) {
+            right--;
+        }
+        nums[left] = nums[right];
+        pixel_array[left] = pixel_array[right];
+        while (left < right && nums[left] <= pivot) {
+           left++;
+        }
+        nums[right] = nums[left];
+        pixel_array[right] = pixel_array[left];
+    }        
+
+    nums[left] = pivot;
+    pixel_array[left] = temp;
+
+    return left;         
+
+}
+__device__ __host__ int kthLargestInternal(int nums[], int l, int r, int k, Pixel pixel_array[]) {
+    if (l == r)
+        return l;
+
+    int position = kthLargestPartition(nums, l, r, pixel_array);
+    if (position + 1 == k)
+        return position;
+    else if (position + 1 < k)
+        return kthLargestInternal(nums, position + 1, r, k, pixel_array);
+    else
+        return kthLargestInternal(nums, l, position - 1, k, pixel_array);
+}
+__device__ __host__ int kthLargest(int k, int nums[], int length, Pixel pixel_array[]) {
+    if (nums == NULL || length == 0 || k <= 0)
+        return -1;
+    return kthLargestInternal(nums, 0, length - 1, length - k + 1, pixel_array);
+}  
 
 
 #ifdef DEBUG
@@ -63,7 +107,7 @@ __device__ __host__ int getSaturation(const int R, const int G, const int B) {
 #define debug_print(...)
 #endif
 
-#define OUPUT_POINT_MAX 100
+#define OUPUT_POINT_MAX 1000
 
 //#define PREDEBUG
 
@@ -196,6 +240,9 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
         // Sort
         //thrust::sort_by_key(thrust::device, converted_sort_list_gpu, converted_sort_list_gpu + point_cnt_gpu, pixel_list_gpu);
         
+        int search_index = kthLargest(point_cnt_gpu - order_gpu, converted_sort_list_gpu, point_cnt_gpu, pixel_list_gpu);
+
+/*
         for (int i = 0; i < point_cnt_gpu; i++) {
             for (int j = 0; j < point_cnt_gpu - i; j++){
                 if (converted_sort_list_gpu[j] > converted_sort_list_gpu[j+1]) {
@@ -221,6 +268,7 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
                 }
             }
         }
+*/
         // Fill value: order
 
         output[pixelid].r = pixel_list_gpu[order_gpu].r;
