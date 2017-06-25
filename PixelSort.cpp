@@ -18,7 +18,7 @@ PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *para
 		temp->center[0] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.x_value)*in_data->downsample_x.num / in_data->downsample_x.den);
 		temp->center[1] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.y_value)*in_data->downsample_y.num / in_data->downsample_y.den);
 		temp->WHRatio = (float)(params[UIP_WHRatio]->u.fs_d.value);
-		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Rotation]->u.ad.value)* PF_RAD_PER_DEGREE);
 		break; }
 	case PSP_Polygon: {
 		PixelSortPatternParmPolygon* temp = (PixelSortPatternParmPolygon*)malloc(sizeof(PixelSortPatternParmPolygon));
@@ -28,16 +28,17 @@ PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *para
 		temp->center[1] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.y_value)*in_data->downsample_y.num / in_data->downsample_y.den);
 		temp->numSides = (int)(params[UIP_NumSides]->u.fs_d.value);
 		temp->WHRatio = (float)(params[UIP_WHRatio]->u.fs_d.value);
-		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Rotation]->u.ad.value)* PF_RAD_PER_DEGREE);
 		break; }
 	case PSP_Spiral: {
 		PixelSortPatternParmSpiral* temp = (PixelSortPatternParmSpiral*)malloc(sizeof(PixelSortPatternParmSpiral));
 		*out_patternparam = (PixelSortPatternParm*)temp;
 		temp->base.pattern = PSP_Spiral;
-		temp->center[0] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.x_value)*in_data->downsample_x.num / in_data->downsample_x.den);
-		temp->center[1] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.y_value)*in_data->downsample_y.num / in_data->downsample_y.den);
+		temp->center[0] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.x_value));// *in_data->downsample_x.num / in_data->downsample_x.den);
+		temp->center[1] = (float)(FIX_2_FLOAT(params[UIP_CenterPoint]->u.td.y_value));// *in_data->downsample_y.num / in_data->downsample_y.den);
+		temp->curveAngle = (float)(FIX_2_FLOAT(params[UIP_CurveAngle]->u.ad.value)* PF_RAD_PER_DEGREE)/in_data->downsample_y.num *in_data->downsample_y.den;
 		temp->WHRatio = (float)(params[UIP_WHRatio]->u.fs_d.value);
-		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		temp->rotation = (float)(FIX_2_FLOAT(params[UIP_Rotation]->u.ad.value)* PF_RAD_PER_DEGREE);
 		break; }
 	case PSP_Sine: {
 		PixelSortPatternParmWave* temp = (PixelSortPatternParmWave*)malloc(sizeof(PixelSortPatternParmWave));

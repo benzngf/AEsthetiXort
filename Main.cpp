@@ -592,7 +592,6 @@ EntryPointFuncM (
 				break;
 
 			case PF_Cmd_RENDER:
-				//TODO: Real render function
 				if (hasCUDA && params[UIP_UseGPU]->u.bd.value) {
 					//Render in GPU
 					int w = (in_data->width*in_data->downsample_x.num / in_data->downsample_x.den);

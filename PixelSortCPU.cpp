@@ -1,5 +1,5 @@
 #include "PixelSort_AE.h"
-
+#include <math.h>
 AEGP_SuiteHandler *gSuites;
 float CalcKeyCPUHue(float minThres, float maxThres, Pixel &p) {
 	if (p.a <= 0.0f || minThres == maxThres) {
@@ -180,6 +180,7 @@ void Bilinear(PPoint pos, Pixel* P00, Pixel* P01, Pixel* P10, Pixel* P11, Pixel*
 }
 
 PPoint traverseLinear(int w, int h, PPoint now, Pixel* footage, bool previous, bool biInter,PixelSortPatternParm* param, Pixel* output) {
+	if (now.x < 0) return now;
 	PixelSortPatternParmLinear* Lparam = (PixelSortPatternParmLinear*)param;
 	PPoint pRet;
 	if (previous) {
@@ -213,6 +214,65 @@ PPoint traverseLinear(int w, int h, PPoint now, Pixel* footage, bool previous, b
 	}
 	return pRet;
 }
+PPoint traverseSpiral(int w, int h, PPoint now, Pixel* footage, bool previous, bool biInter, PixelSortPatternParm* param, Pixel* output) {
+	if (now.x < 0) return now;
+	PixelSortPatternParmSpiral* Sparam = (PixelSortPatternParmSpiral*)param;
+	PPoint pRet;
+	float r = sqrtf((now.x - Sparam->center[0])*(now.x - Sparam->center[0]) + (now.y - Sparam->center[1])*(now.y - Sparam->center[1]));
+	float theta = atan2f(now.y - Sparam->center[1], now.x - Sparam->center[0]);
+	float dr = 100.0f / (100.0f + (r*Sparam->curveAngle/100.0f)*(r*Sparam->curveAngle/100.0f));
+	float dTheta = dr*Sparam->curveAngle / 1000.0f;
+	if (previous) {
+		if((int)now.x == (int)Sparam->center[0] && (int)now.y == (int)Sparam->center[1]) {
+			pRet.x = -100.0f;
+			pRet.y = -100.0f;
+			return pRet;
+		}
+		else {
+			r -= dr;
+			theta -= dTheta;
+			if (r <= 0) {
+				pRet.x = Sparam->center[0];
+				pRet.y = Sparam->center[1];
+			}
+			else {
+				pRet.x = Sparam->center[0] + r*cosf(theta);
+				pRet.y = Sparam->center[1] + r*sinf(theta);
+			}
+		}
+	}
+	else {
+		r += dr;
+		theta += dTheta;
+		pRet.x = Sparam->center[0] + r*cosf(theta);
+		pRet.y = Sparam->center[1] + r*sinf(theta);
+	}
+	if (pRet.x<0 || pRet.x >= w || pRet.y<0 || pRet.y >= h || footage[((int)pRet.y)*w + (int)pRet.x].key < 0) {
+		pRet.x = -100.0f;
+		pRet.y = -100.0f;
+		return pRet;
+	}
+	if (output != nullptr) {
+		if (biInter) {
+			PPoint pBi;
+			pBi.x = pRet.x - ((int)pRet.x);
+			pBi.y = pRet.y - ((int)pRet.y);
+			int xside = pRet.x >= w - 1;
+			int yside = pRet.y >= h - 1;
+			Bilinear(pBi, &footage[((int)pRet.y)*w + (int)pRet.x], &footage[((int)pRet.y + 1 - yside)*w + (int)pRet.x], &footage[((int)pRet.y)*w + (int)pRet.x + 1 - xside], &footage[((int)pRet.y + 1 - yside)*w + (int)pRet.x + 1 - xside], output);
+		}
+		else {
+			output->r = footage[((int)pRet.y)*w + (int)pRet.x].r;
+			output->g = footage[((int)pRet.y)*w + (int)pRet.x].g;
+			output->b = footage[((int)pRet.y)*w + (int)pRet.x].b;
+			output->a = footage[((int)pRet.y)*w + (int)pRet.x].a;
+			output->key = footage[((int)pRet.y)*w + (int)pRet.x].key;
+		}
+	}
+	return pRet;
+}
+
+
 
 typedef struct cpuCalcKeyItData {
 	float (*CalcKey)(float minThres, float maxThres, Pixel &p);
@@ -225,6 +285,7 @@ typedef struct cpuSortItData {
 	Pixel* footage;
 	PixelSortPatternParm* param;
 	PPoint (*traverseF)(int w, int h, PPoint now, Pixel* footage, bool previous, bool biInter, PixelSortPatternParm* param, Pixel* output);
+	int (*maxLengthF)(int w, int h, PPoint now, PixelSortPatternParm* param);
 	bool bilinear;
 	int w, h;
 	bool reverse_sort_order;
@@ -289,10 +350,6 @@ Pixel searchHelperCPU(Pixel* nums, int left, int right, int k) {
 
 
 //////
-
-
-
-
 PF_Err iterate8_SortCPU(void* refcon, A_long x, A_long y, PF_Pixel *in, PF_Pixel *out) {
 	cpuSortItData* it = (cpuSortItData*)refcon;
 	if (x < 0 || y < 0 || x >= it->w || y >= it->h) {
@@ -317,14 +374,11 @@ PF_Err iterate8_SortCPU(void* refcon, A_long x, A_long y, PF_Pixel *in, PF_Pixel
 	nowp.y = (float)y;
 	count--;
 	int myIndex = -1;
-	PPoint LastP;
 	while (nowp.x >= 0) {//search prev
 		count++;
 		myIndex++;
-		LastP = nowp;
 		nowp = it->traverseF(it->w, it->h, nowp, it->footage, true, false, it->param, nullptr);
 	}
-	nowp = LastP;
 	int total = count;
 	if (total <= 1) {
 		out->red = (A_u_char)(it->footage[y*it->w + x]).r;
@@ -334,17 +388,36 @@ PF_Err iterate8_SortCPU(void* refcon, A_long x, A_long y, PF_Pixel *in, PF_Pixel
 		return PF_Err_NONE;
 	}
 	Pixel* pArr = (Pixel*)malloc(sizeof(Pixel)*count);
+	for (int i = 0; i < count; i++) {
+		pArr[i].key = -100;
+	}
+	nowp.x = (float)x;
+	nowp.y = (float)y;
 	while (count>0&&nowp.x >= 0) {//fill next
 		nowp = it->traverseF(it->w, it->h, nowp, it->footage, false, it->bilinear, it->param, &pArr[total-count] );
+		count--;
+	}
+	nowp.x = (float)x;
+	nowp.y = (float)y;
+	nowp = it->traverseF(it->w, it->h, nowp, it->footage, true, false, it->param, nullptr);
+	while (count>0 && nowp.x >= 0) {//fill prev
+		nowp = it->traverseF(it->w, it->h, nowp, it->footage, true, it->bilinear, it->param, &pArr[total - count]);
 		count--;
 	}
 	//sort pArr
 	Pixel result = CPUkthLargestElement(total-myIndex-1, pArr, total);
 	//end sort pArr
-	out->red = (A_u_char)result.r;
-	out->green = (A_u_char)result.g;
-	out->blue = (A_u_char)result.b;
-	out->alpha = (A_u_char)(it->footage[y*it->w + x]).a;
+	if (result.key > 0) {
+		out->red = (A_u_char)result.r;
+		out->green = (A_u_char)result.g;
+		out->blue = (A_u_char)result.b;
+	}else {
+		out->red = (A_u_char)(it->footage[y*it->w + x]).r;
+		out->green = (A_u_char)(it->footage[y*it->w + x]).g;
+		out->blue = (A_u_char)(it->footage[y*it->w + x]).b;
+	}
+
+	out		->alpha = (A_u_char)(it->footage[y*it->w + x]).a;
 	free(pArr);
 	return PF_Err_NONE;
 }
@@ -395,7 +468,14 @@ PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *para
 	itInput.h = (in_data->height*in_data->downsample_y.num / in_data->downsample_y.den);
 	itInput.footage = *CPUinputH;
 	itInput.param = pattern_parm;
-	itInput.traverseF = traverseLinear;
+	switch (pattern_parm->pattern) {
+	case PSP_Spiral:
+		itInput.traverseF = traverseSpiral;
+		break;
+	default:
+		itInput.traverseF = traverseLinear;
+		break;
+	}
 	itInput.reverse_sort_order = params[UIP_RevSortOrder]->u.bd.value!=0;
 	itInput.sort_alpha = params[UIP_SortAlpha]->u.bd.value!=0;
 	itInput.bilinear = params[UIP_AntiAliasing]->u.bd.value!=0;
