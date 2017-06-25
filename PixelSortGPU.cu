@@ -32,12 +32,7 @@ __device__ __host__ __forceinline__ float angle_nomralize(float x){
     return x;
 }
 __device__ __host__ float getLuminance(const float R, const float G, const float B) {
-    float R_ = R/255.0f;
-    float G_ = G/255.0f;
-    float B_ = B/255.0f;
-    float M = MaxRGB(R_, G_, B_);
-    float m = MinRGB(R_, G_, B_);
-    return (M + m) / 2.0;
+    return (MaxRGB(R, G, B) + MinRGB(R, G, B)) / 510.f;
 }  
 __device__ __host__ float getHue(const float R, const float G, const float B) {
     float M = MaxRGB(R, G, B);
@@ -56,12 +51,12 @@ __device__ __host__ float getHue(const float R, const float G, const float B) {
     return 60.0f*Result;
 }
 __device__ __host__ float getSaturation(const float R, const float G, const float B) {
-    float M = MaxRGB(R, G, B) / 255.0f;
-    float m = MinRGB(R, G, B) / 255.0f;
-    float C = M - m;
-    float L = (M + m) / 2.0;
+    float C = (MaxRGB(R, G, B) - MinRGB(R, G, B)) / 255.f;
+    float L = getLuminance(R, G, B);
 
-    return (L != 1.0)? C / (1 - absolute(2 * L - 1)) : 0.0;
+    if (C == 0.f) return 0.f;
+    else if (L <= 0.5f) return (C > (2.f * L))? 1.0 : (C / (2.f * L));
+    else return (C > (2.f - 2.f * L))? 1.0 : C / (2.f - 2.f * L);
 }
 // For the following 3 functions, adapted from: https://www.jiuzhang.com/solutions/kth-largest-element/
 __device__ __host__ int kthLargestPartition(int l, int r, Pixel pixel_array[]) {
