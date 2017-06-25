@@ -82,6 +82,9 @@
     <ClInclude Include="..\opFlow.h">
       <Filter>Headers</Filter>
     </ClInclude>
+    <ClInclude Include="..\PixelSortCPU.h">
+      <Filter>Headers</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Util\AEGP_SuiteHandler.cpp">
@@ -97,6 +100,7 @@
       <Filter>Headers</Filter>
     </ClCompile>
     <ClCompile Include="..\optical_flow.cpp" />
+    <ClCompile Include="..\PixelSortCPU.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="..\AEsthetiXort.r">

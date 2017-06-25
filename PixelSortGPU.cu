@@ -527,3 +527,16 @@ int callCudaFunc()
 	// return 
 	return H_sum;
 }
+
+void cuLayerMemMove(Pixel* GPUinputMem_CPU, Pixel* &GPUinputMem_GPUIn, Pixel* &GPUinputMem_GPUOut, int size,int dir) {
+	if (dir == 0) {
+		cudaMalloc((void**)&GPUinputMem_GPUIn, sizeof(Pixel)*size);
+		cudaMalloc((void**)&GPUinputMem_GPUOut, sizeof(Pixel)*size);
+		cudaMemcpy(GPUinputMem_GPUIn, GPUinputMem_CPU, sizeof(Pixel)*size, cudaMemcpyHostToDevice);
+	}
+	else if (dir == 1) {
+		cudaMemcpy(GPUinputMem_CPU, GPUinputMem_GPUOut, sizeof(Pixel)*size, cudaMemcpyDeviceToHost);
+		cudaFree(GPUinputMem_GPUIn);
+		cudaFree(GPUinputMem_GPUOut);
+	}
+}

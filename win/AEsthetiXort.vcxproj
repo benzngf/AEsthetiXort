@@ -171,6 +171,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
     <ClInclude Include="..\Layer_transformer.h" />
     <ClInclude Include="..\opFlow.h" />
     <ClInclude Include="..\PixelSort.h" />
+    <ClInclude Include="..\PixelSortCPU.h" />
     <ClInclude Include="..\PixelSort_AE.h" />
     <ClInclude Include="..\..\..\Headers\A.h" />
     <ClInclude Include="..\..\..\Headers\AE_Effect.h" />
@@ -212,6 +213,7 @@ cl /D "MSWindows" /EP $(IntDir)%(Filename).rrc &gt;               "$(ProjectDir)
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">MSWindows;WIN32;_DEBUG;_WINDOWS</PreprocessorDefinitions>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="..\PixelSortCPU.cpp" />
     <ClCompile Include="..\PixelSort_Strings.h">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">MSWindows;WIN32;_DEBUG;_WINDOWS</PreprocessorDefinitions>
