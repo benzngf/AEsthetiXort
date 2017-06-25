@@ -110,6 +110,8 @@ __device__ void RotateVector(float theta, float *in, float *out, float px, float
 }
 
 
+
+
 #ifdef DEBUG
 #define debug_print(...) fprintf(stderr, __VA_ARGS__) 
 #else
@@ -117,13 +119,28 @@ __device__ void RotateVector(float theta, float *in, float *out, float px, float
 #endif
 
 #define OUPUT_POINT_MAX 5000
+// r_x * r_y (x, y) + (1-r_x)* r_y (x + 1, y) + r_x * (1 - r_y) (x, y + 1) + (1-r_x)*(1-r_y) (x+1, y+1)
+__device__ Pixel interpolate(const float x, const float y, 
+    const float w, const float h, const Pixel* input) {
+
+    if (x >= 0.5f && x < w - 0.5f && y >= 0.5f && y < h - 0.5f) {
+        float ratiox = (x - 0.5f) - (int)(x - 0.5f);
+        float ratioy = (y - 0.5f) - (int)(y - 0.5f);
+        return input[(int)(y - 0.5f) * (int)w + (int)(x - 0.5f)] * (1.f-ratiox) * (1.f - ratioy)
+        + input[(int)(y - 0.5f) * (int)w + (int)(x + 0.5f)] * ratiox * (1.f - ratioy)
+        + input[(int)(y + 0.5f) * (int)w + (int)(x - 0.5f)] * (1.f - ratiox) * ratioy
+        + input[(int)(y + 0.5f) * (int)w + (int)(x + 0.5f)] * ratiox * ratioy;
+    }
+    else return input[(int)y * (int)w + (int)x];
+           
+}
 
 __device__  void GetListToSort(
         const Pixel *input,
         PixelSortPatternParmRadialSpin *rspin, 
         const float x, const float y, 
         const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output) {
+        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
 }
 
 __device__  void GetListToSort(
@@ -131,7 +148,7 @@ __device__  void GetListToSort(
         PixelSortPatternParmPolygon *polygon,
         const float x, const float y, 
         const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output) {
+        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
 }
 
 __device__  void GetListToSort(
@@ -139,7 +156,7 @@ __device__  void GetListToSort(
         PixelSortPatternParmSpiral *spiral,
         const float x, const float y, 
         const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output) {
+        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
 }
 
 __device__  void GetListToSortSine(
@@ -232,8 +249,8 @@ __device__  void GetListToSort(
         PixelSortPatternParmWave *wave,
         const float x, const float y, 
         const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output) {
-    switch(((PixelSortPatternParm *)wave)->pattern) {
+        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
+    switch(wave->base.pattern) {
         case PSP_Sine:
             GetListToSortSine(input, wave, x, y, w, h, order, point_cnt, output);
             break;
@@ -263,7 +280,7 @@ __device__  void GetListToSort(
         PixelSortPatternParmLinear *linear, 
         const float x, const float y, 
         const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output) {
+        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
     float delta[2], last[2];
     int cnt = 1;
     
@@ -288,7 +305,7 @@ __device__  void GetListToSort(
            last[1] > 0 && last[1] < h &&
            PIXELXY(last[0], last[1]).key >= 0.0f) {
         // TODO: AA here
-        UPDATE_OUTPUT(last[0], last[1], 255, 0, 0);
+        UPDATE_OUTPUT(last[0], last[1], 255, 0, 0);    
         ++cnt;
         last[0] -= delta[0];
         last[1] -= delta[1];
@@ -324,7 +341,14 @@ __device__  void GetListToSort(
            last[1] > 0 && last[1] < h &&
            PIXELXY(last[0], last[1]).key >= 0.0f) {
         // TODO: AA here
-        output[cnt] = PIXELXY(last[0], last[1]);
+        //output[cnt] = PIXELXY(last[0], last[1]);
+        
+        if (!anti_aliasing)
+            output[cnt] = PIXELXY(last[0], last[1]);
+        else
+            output[cnt] = interpolate(last[0], last[1], w, h, input);
+
+
         ++cnt;
         last[0] -= delta[0];
         last[1] -= delta[1];
@@ -340,7 +364,11 @@ __device__  void GetListToSort(
            last[1] > 0 && last[1] < h &&
            PIXELXY(last[0], last[1]).key >= 0.0f) {
         // TODO: AA here
-        output[cnt] = PIXELXY(last[0], last[1]);
+        //output[cnt] = PIXELXY(last[0], last[1]);
+        if (!anti_aliasing)
+            output[cnt] = PIXELXY(last[0], last[1]);
+        else
+            output[cnt] = interpolate(last[0], last[1], w, h, input);
         ++cnt;
         last[0] += delta[0];
         last[1] += delta[1];
@@ -462,7 +490,7 @@ pattern parameter, do antialiasing?, sort alpha?)*/
 template <typename Parm>
 __global__ void SortFromList(Parm *parm, 
     const Pixel *input, Pixel *output, 
-    const int w, const int h) {
+    const int w, const int h, bool anti_aliasing) {
 
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -485,10 +513,10 @@ __global__ void SortFromList(Parm *parm,
         Pixel pixel_list_gpu[OUPUT_POINT_MAX];
 
 #ifdef SHOW_SORT
-        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output);
+        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output, anti_aliasing);
         return;
 #else
-        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
+        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu, anti_aliasing);
 #endif
         // Sorting
 
@@ -510,10 +538,7 @@ __global__ void SortFromList(Parm *parm,
 #endif
 
         // Fill value: order
-        output[pixelid].r = pixel_list_gpu[search_index].r;
-        output[pixelid].g = pixel_list_gpu[search_index].g;
-        output[pixelid].b = pixel_list_gpu[search_index].b;
-        output[pixelid].a = pixel_list_gpu[search_index].a;
+        output[pixelid] = pixel_list_gpu[search_index];
     }
 }
 
@@ -538,7 +563,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("angle: %f\n", ((PixelSortPatternParmLinear *)pattern_parm)->angle);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmLinear));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmLinear), cudaMemcpyHostToDevice);
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, input, output, width, height);
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, input, output, width, height, anti_aliasing);
             break;
             }
         case PSP_Radial_Spin:
@@ -550,7 +575,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("rotation: %f\n", ((PixelSortPatternParmRadialSpin *)pattern_parm)->rotation);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmRadialSpin));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmRadialSpin), cudaMemcpyHostToDevice);
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmRadialSpin *)pattern_parm_gpu, input, output, width, height);
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmRadialSpin *)pattern_parm_gpu, input, output, width, height, anti_aliasing);
             break;
         case PSP_Polygon:
             debug_print("PSP_Polygon (%d)\n", pattern_parm->pattern);
@@ -562,7 +587,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("rotation: %f\n", ((PixelSortPatternParmPolygon *)pattern_parm)->rotation);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmPolygon));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmPolygon), cudaMemcpyHostToDevice);
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmPolygon *)pattern_parm_gpu, input, output, width, height);
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmPolygon *)pattern_parm_gpu, input, output, width, height, anti_aliasing);
             break;
         case PSP_Spiral:
             debug_print("PSP_Spiral (%d)\n", pattern_parm->pattern);
@@ -574,7 +599,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("rotation: %f\n", ((PixelSortPatternParmSpiral *)pattern_parm)->rotation);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmSpiral));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmSpiral), cudaMemcpyHostToDevice);
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmSpiral *)pattern_parm_gpu, input, output, width, height);
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmSpiral *)pattern_parm_gpu, input, output, width, height, anti_aliasing);
             break;
         case PSP_Sine: 
         case PSP_Triangle: 
@@ -585,8 +610,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("rotation: %f\n", ((PixelSortPatternParmWave *)pattern_parm)->rotation);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmWave));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmWave), cudaMemcpyHostToDevice);
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmWave *)pattern_parm_gpu, input, output, width, height);
-
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmWave *)pattern_parm_gpu, input, output, width, height, anti_aliasing);
             break;
 
         /*
