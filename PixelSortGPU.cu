@@ -60,58 +60,56 @@ __device__ __host__ float getSaturation(const float R, const float G, const floa
         return C / (1 - absolute(2 * L - 1));
 }
 // For the following 3 functions, adapted from: https://www.jiuzhang.com/solutions/kth-largest-element/
-__device__ __host__ int kthLargestPartition(int nums[], int l, int r, Pixel pixel_array[]) {
+__device__ __host__ int kthLargestPartition(int l, int r, Pixel pixel_array[]) {
 
     int left = l, right = r;
-    int pivot = nums[left];
     Pixel temp = pixel_array[left];
+    int pivot = temp.key;
        
 
     while (left < right) {
-        while (left < right && nums[right] >= pivot) {
+        while (left < right && pixel_array[right].key >= pivot) {
             right--;
         }
-        nums[left] = nums[right];
         pixel_array[left] = pixel_array[right];
-        while (left < right && nums[left] <= pivot) {
+        while (left < right && pixel_array[left].key <= pivot) {
            left++;
         }
-        nums[right] = nums[left];
         pixel_array[right] = pixel_array[left];
     }        
 
-    nums[left] = pivot;
     pixel_array[left] = temp;
 
     return left;         
 
 }
-__device__ __host__ int kthLargestInternal(int nums[], int l, int r, int k, Pixel pixel_array[]) {
+__device__ __host__ int kthLargestInternal(int l, int r, int k, Pixel pixel_array[]) {
     if (l == r)
         return l;
 
-    int position = kthLargestPartition(nums, l, r, pixel_array);
+    int position = kthLargestPartition(l, r, pixel_array);
     if (position + 1 == k)
         return position;
     else if (position + 1 < k)
-        return kthLargestInternal(nums, position + 1, r, k, pixel_array);
+        return kthLargestInternal(position + 1, r, k, pixel_array);
     else
-        return kthLargestInternal(nums, l, position - 1, k, pixel_array);
+        return kthLargestInternal(l, position - 1, k, pixel_array);
 }
-__device__ __host__ int kthLargest(int k, int nums[], int length, Pixel pixel_array[]) {
-    if (nums == NULL || length == 0 || k <= 0)
+__device__ __host__ int kthLargest(int k, int length, Pixel pixel_array[]) {
+    if (length == 0 || k <= 0)
         return -1;
-    return kthLargestInternal(nums, 0, length - 1, length - k + 1, pixel_array);
+    return kthLargestInternal(0, length - 1, length - k + 1, pixel_array);
 }  
 
 
 #ifdef DEBUG
+#include <stdio.h>
 #define debug_print(...) fprintf(stderr, __VA_ARGS__) 
 #else
 #define debug_print(...)
 #endif
 
-#define OUPUT_POINT_MAX 1000
+#define OUPUT_POINT_MAX 100
 
 //#define PREDEBUG
 
@@ -274,7 +272,7 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
         GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
 
         // Sorting
-        int search_index = kthLargest(point_cnt_gpu - order_gpu, converted_sort_list_gpu, point_cnt_gpu, pixel_list_gpu);
+        int search_index = kthLargest(point_cnt_gpu - order_gpu, point_cnt_gpu, pixel_list_gpu);
 
         // Fill value: order
         output[pixelid].r = pixel_list_gpu[search_index].r;
@@ -377,11 +375,13 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmWave));
             cudaMemcpy(&pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmWave), cudaMemcpyHostToDevice);
             break;
+            /*
         case PSP_Optical_Flow:
             debug_print("PSP_Optical_Flow (%d)\n", pattern_parm->pattern);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmOpFlow));
             cudaMemcpy(&pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmOpFlow), cudaMemcpyHostToDevice);
             break;
+            */
 
         default:
             break;
