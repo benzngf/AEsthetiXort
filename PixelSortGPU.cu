@@ -63,17 +63,14 @@ __device__ __host__ int getSaturation(const int R, const int G, const int B) {
 #define debug_print(...)
 #endif
 
-#define OUPUT_POINT_MAX 100
+#define OUPUT_POINT_MAX 1000
 
 //#define PREDEBUG
 
 // TODO: I think these code is GPU-unfriendly
 // This shoulb be __device__
-#ifdef PREDEBUG
-__global__  void GetListToSort(
-#else
 __device__  void GetListToSort(
-#endif
+        Pixel *input
         PixelSortPatternParmLinear *linear, 
         const float x, const float y, 
         const float w, const float h, 
@@ -115,44 +112,18 @@ __device__  void GetListToSort(
 }
 
 
-#ifndef PREDEBUG
-__global__ void SortFromList(PixelSortPatternParmLinear *linear, 
-    const Pixel *input, Pixel *output, 
-    const int w, const int h,
-    const PixelSortBy sort_by) {
-
+__global__ void ComputeKey(
+        const PixelSortBy sort_by, 
+        const int w, const int h, 
+        Pixel *inout) {
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-    const int pixelid = y * w + x;
+    if (x < w && y < h) {
+        const int pixelid = y * w + x;
+        Pixel *cur = inout + pixelid;
 
-    if (x < w and y < h) {
-        // Get a list for sorting
-        const float pixelx = x + 0.5;
-        const float pixely = y + 0.5;
-
-        int point_cnt_gpu;
-        int order_gpu;
-        float sort_list_gpu[2*OUPUT_POINT_MAX];
-
-
-        GetListToSort(linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, sort_list_gpu);
-
-        // Sorting: preprocessing
-        int converted_sort_list_gpu[OUPUT_POINT_MAX];
-        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
-        // Fill sorting pixel
-        for (int i = 0; i < point_cnt_gpu; i++){
-            int ind = (int)floorf(sort_list_gpu[2*i+1])*w + (int)floorf(sort_list_gpu[2*i]);
-            pixel_list_gpu[i].r = input[ind].r;
-            pixel_list_gpu[i].g = input[ind].g;
-            pixel_list_gpu[i].b = input[ind].b;
-            pixel_list_gpu[i].a = input[ind].a;
-
-        }
-        // Fill sorting key
         switch (sort_by){
-
             case PSB_R:
                 for (int i = 0; i < point_cnt_gpu; i++) {
                     int ind = (int)floorf(sort_list_gpu[2*i+1])*w + (int)floorf(sort_list_gpu[2*i]);
@@ -192,6 +163,45 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
             default:
                 break;
         }
+    }
+}
+
+#ifndef PREDEBUG
+__global__ void SortFromList(PixelSortPatternParmLinear *linear, 
+    const Pixel *input, Pixel *output, 
+    const int w, const int h,
+    const PixelSortBy sort_by) {
+
+    const int x = blockIdx.x * blockDim.x + threadIdx.x;
+    const int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    const int pixelid = y * w + x;
+
+    if (x < w and y < h) {
+        // Get a list for sorting
+        const float pixelx = x + 0.5;
+        const float pixely = y + 0.5;
+
+        int point_cnt_gpu;
+        int order_gpu;
+        float sort_list_gpu[2*OUPUT_POINT_MAX];
+
+
+        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, sort_list_gpu);
+
+        // Sorting: preprocessing
+        int converted_sort_list_gpu[OUPUT_POINT_MAX];
+        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
+        // Fill sorting pixel
+        for (int i = 0; i < point_cnt_gpu; i++){
+            int ind = (int)floorf(sort_list_gpu[2*i+1])*w + (int)floorf(sort_list_gpu[2*i]);
+            pixel_list_gpu[i].r = input[ind].r;
+            pixel_list_gpu[i].g = input[ind].g;
+            pixel_list_gpu[i].b = input[ind].b;
+            pixel_list_gpu[i].a = input[ind].a;
+
+        }
+        // Fill sorting key
 
         // Sort
         //thrust::sort_by_key(thrust::device, converted_sort_list_gpu, converted_sort_list_gpu + point_cnt_gpu, pixel_list_gpu);
