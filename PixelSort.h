@@ -30,6 +30,26 @@ struct Pixel {/*0.0f-255.0f*/
         float e[4];
     };
 	float key;
+
+    __host__ __device__ Pixel operator+(const Pixel& rhs) const {
+        Pixel result;
+        result.r = r + rhs.r;
+        result.g = g + rhs.g;
+        result.b = b + rhs.b;
+        result.a = a + rhs.a;
+        result.key = key + rhs.key; // key?
+        return result;
+    }
+
+    __host__ __device__ Pixel operator*(const float& coef) const {
+        Pixel result;
+        result.r = r * coef;
+        result.g = g * coef;
+        result.b = b * coef;
+        result.a = a * coef;
+        result.key = key * coef;
+        return result;
+    }
 };
 
 
