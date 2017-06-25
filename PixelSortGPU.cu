@@ -33,6 +33,10 @@ __device__ __host__ __forceinline__ float angle_nomralize(float x){
         return x + 6.0;
     return x;
 }
+__device__ __host__ __forceinline__ float angle_nomralize2(float x){
+    int multiplier = (x > 0.f)? (int)(x / (2 * PI)) : (-1 + (int)(x / (2 * PI)));
+    return x - 2 * PI * multiplier;
+}
 __device__ __host__ float getLuminance(const float R, const float G, const float B) {
     return (MaxRGB(R, G, B) + MinRGB(R, G, B)) / 510.f;
 }  
@@ -141,6 +145,60 @@ __device__  void GetListToSort(
         const float x, const float y, 
         const float w, const float h, 
         int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
+    // coordinate system: regard rotation as 0 (i.e. relative coordinate system)
+
+    float last[2], lastangle;
+    int cnt = 1;
+
+
+    float r = sqrtf( (x - rspin->center[0]) * (x - rspin->center[0]) + (y - rspin->center[1]) * (y - rspin->center[1]) );
+
+    last[0] = x;
+    last[1] = y;
+    lastangle = angle_nomralize2(atan2f(y - rspin->center[1], x - rspin->center[0]) - rspin->rotation); // [0, 2*pi) relative to rotation
+    output[0] = input[int(x) + int(y)*int(w)];
+
+    // don't do if radius is too small
+    if (r < .5f) {
+        *order = 1;
+        *point_cnt = cnt;
+        return;
+    }
+
+    // reduce angle
+    while (cnt < OUPUT_POINT_MAX) {
+        lastangle -= 1.f / r;
+        if (lastangle < 0.f)
+            break;
+        last[0] = rspin->center[0] + r * cos(lastangle + rspin->rotation);
+        last[1] = rspin->center[1] + r * sin(lastangle + rspin->rotation);
+        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h) {
+            if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+                output[cnt] = input[(int)(last[0]) + (int)(last[1])*(int)(w)];
+                cnt++;
+            }
+        }
+        else break;
+    }
+    *order = cnt-1;
+    //increase angle
+    lastangle = angle_nomralize2(atan2f(y - rspin->center[1], x - rspin->center[0]) - rspin->rotation); // [0, 2*pi) relative to rotation
+    while (cnt < OUPUT_POINT_MAX) {
+        lastangle += 1.f / r;
+        if (lastangle >= 2 * PI)
+            break;
+        last[0] = rspin->center[0] + r * cos(lastangle + rspin->rotation);
+        last[1] = rspin->center[1] + r * sin(lastangle + rspin->rotation);
+        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h) {
+            if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+                output[cnt] = input[(int)(last[0]) + (int)(last[1])*(int)(w)];
+                cnt++;
+            }
+            
+        }
+        else break;
+    }
+    *point_cnt = cnt;
 }
 
 __device__  void GetListToSort(
