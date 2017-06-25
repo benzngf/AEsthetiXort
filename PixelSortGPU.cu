@@ -70,7 +70,7 @@ __device__ __host__ int kthLargestPartition(int l, int r, Pixel pixel_array[]) {
 
     int left = l, right = r;
     Pixel temp = pixel_array[left];
-    int pivot = temp.key;
+    float pivot = temp.key;
        
 
     while (left < right) {
@@ -114,7 +114,7 @@ __device__ __host__ int kthLargest(int k, int length, Pixel pixel_array[]) {
 #define debug_print(...)
 #endif
 
-#define OUPUT_POINT_MAX 100
+#define OUPUT_POINT_MAX 5000
 
 //#define PREDEBUG
 
@@ -140,7 +140,7 @@ __device__  void GetListToSort(
     while (cnt < OUPUT_POINT_MAX && 
            last[0] > 0 && last[0] < w && 
            last[1] > 0 && last[1] < h &&
-           PIXELXY(last[0], last[1]).key > 0.0f) {
+           PIXELXY(last[0], last[1]).key >= 0.0f) {
         // TODO: AA here
         output[cnt] = PIXELXY(last[0], last[1]);
         ++cnt;
@@ -156,7 +156,7 @@ __device__  void GetListToSort(
     while (cnt < OUPUT_POINT_MAX && 
            last[0] > 0 && last[0] < w && 
            last[1] > 0 && last[1] < h &&
-           PIXELXY(last[0], last[1]).key > 0.0f) {
+           PIXELXY(last[0], last[1]).key >= 0.0f) {
         // TODO: AA here
         output[cnt] = PIXELXY(last[0], last[1]);
         ++cnt;
@@ -250,6 +250,13 @@ __global__ void ComputeKey(
                 break;
         }
         cur->key = Map01(cur->key, min, max, threshold_min, threshold_max);
+        /*
+        if (cur->key > 0.0f) {
+            cur->r = 255.0f;
+            cur->g /= 2;
+            cur->b /= 2;
+        }
+        */
     }
 }
 
@@ -269,13 +276,27 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
 
         int point_cnt_gpu;
         int order_gpu;
-        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
 
+        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
         // Get a list for sorting
         GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
 
         // Sorting
+
+#if 1
         int search_index = kthLargest(point_cnt_gpu - order_gpu, point_cnt_gpu, pixel_list_gpu);
+#else
+        for (int i = 0; i < point_cnt_gpu; i++) {
+            for (int j = 0; j < point_cnt_gpu - i; j++){
+                if (pixel_list_gpu[j].key > pixel_list_gpu[j+1].key) {
+                    Pixel temp = pixel_list_gpu[j];
+                    pixel_list_gpu[j] = pixel_list_gpu[j+1];
+                    pixel_list_gpu[j+1] = temp;
+                }
+            }
+        }
+        int search_index = order_gpu;
+#endif
 
         // Fill value: order
         output[pixelid].r = pixel_list_gpu[search_index].r;
@@ -390,6 +411,8 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
         default:
             break;
 	}
+
+    //cudaMemcpy(output, input, width*height*sizeof(Pixel), cudaMemcpyDeviceToDevice);
 }
 
 
