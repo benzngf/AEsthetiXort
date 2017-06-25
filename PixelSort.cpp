@@ -1,10 +1,6 @@
 #include "PixelSort_AE.h"
 #include "opFlow.h"
 
-PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *params[], PF_LayerDef	*output, PixelSortPatternParm *pattern_parm) {
-	return PF_Err_NONE;
-}
-
 
 
 PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], PixelSortPatternParm** &out_patternparam) {
@@ -13,7 +9,7 @@ PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *para
 		PixelSortPatternParmLinear* temp = (PixelSortPatternParmLinear*)malloc(sizeof(PixelSortPatternParmLinear));
 		*out_patternparam = (PixelSortPatternParm*)temp;
 		temp->base.pattern = PSP_Linear;
-		temp->angle = (float)(FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)* PF_RAD_PER_DEGREE);
+		temp->angle = (float)((FIX_2_FLOAT(params[UIP_Angle]->u.ad.value)-90.0f)* PF_RAD_PER_DEGREE);
 		break; }
 	case PSP_Radial_Spin: {
 		PixelSortPatternParmRadialSpin* temp = (PixelSortPatternParmRadialSpin*)malloc(sizeof(PixelSortPatternParmRadialSpin));
@@ -200,6 +196,7 @@ PF_Err prepareGPUinput(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *pa
 	itInput.footage = *GPUinputH;
 	//fill the pixels
 	suites.Iterate8Suite1()->iterate(in_data, 0, 0, &(params[0]->u.ld), NULL, &itInput, &iterate8_toGPU, &(params[0]->u.ld));
+	
 	return PF_Err_NONE;
 }
 PF_Err copyGPUresult(PF_InData *in_data, PF_OutData *out_data, PF_LayerDef *output, Pixel** GPUinputH) {

@@ -1,10 +1,10 @@
 CFLAG = -std=c++11
 #CFLAG += -O2
-CFLAG += -g -DDEBUG #--compiler-options='-Wall'
+CFLAG += -g -DDEBUG -DSHOW_SELECT #--compiler-options='-Wall'
 
 INPUT_IMG=trump.ppm
-SORT_BY=R
-THRESHOLD_MIN=50.0
+SORT_BY=Saturation
+THRESHOLD_MIN=0.0
 THRESHOLD_MAX=100.0
 REVERSE_SORT_ORDER=0
 ANTI_ALIASING=1

@@ -68,6 +68,7 @@ typedef short int			int16;
 #define	BUILD_VERSION	1
 
 
+
 /* Parameter defaults */
 	enum UIPARAMS {
 		UIP_ThisLayer = 0,
@@ -105,7 +106,8 @@ PF_Err prepareParams(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *para
 PF_Err disposeParams(PF_InData *in_data, PixelSortPatternParm** out_patternparam);
 PF_Err prepareGPUinput(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], Pixel** &GPUinputH);
 PF_Err copyGPUresult(PF_InData *in_data, PF_OutData *out_data, PF_LayerDef *output, Pixel** GPUinputH);
-PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *params[], PF_LayerDef	*output, PixelSortPatternParm *pattern_parm);
+PF_Err prepareCPUinput(PF_InData *in_data, PF_OutData *out_data, PF_ParamDef *params[], Pixel** &CPUinputH);
+PF_Err PixelSortCPU(PF_InData	 *in_data, PF_OutData *out_data, PF_ParamDef *params[], PF_LayerDef	*output, PixelSortPatternParm *pattern_parm, Pixel** &CPUinputH);
 DllExport	PF_Err 
 EntryPointFuncM(	
 	PF_Cmd			cmd,

@@ -129,6 +129,47 @@ __device__  void GetListToSort(
     delta[0] = cos(linear->angle);
     delta[1] = sin(linear->angle);
     
+#ifdef SHOW_SORT
+#define PIXELXY(x, y) (input[int(x) + int(y)*int(w)])
+#define OUTPUTXY(x, y) (output[int(x) + int(y)*int(w)])
+#define UPDATE_OUTPUT(x, y, red, green, blue) \
+    OUTPUTXY(x, y).r = red; \
+    OUTPUTXY(x, y).g = green; \
+    OUTPUTXY(x, y).b = blue; 
+
+    UPDATE_OUTPUT(x, y, 255, 255, 255);
+    
+    // prev
+    last[0] = x - delta[0];
+    last[1] = y - delta[1];
+    while (cnt < OUPUT_POINT_MAX && 
+           last[0] > 0 && last[0] < w && 
+           last[1] > 0 && last[1] < h &&
+           PIXELXY(last[0], last[1]).key >= 0.0f) {
+        // TODO: AA here
+        UPDATE_OUTPUT(last[0], last[1], 255, 0, 0);
+        ++cnt;
+        last[0] -= delta[0];
+        last[1] -= delta[1];
+    }
+
+    *order = cnt-1;
+
+    // next
+    last[0] = x + delta[0];
+    last[1] = y + delta[1];
+    while (cnt < OUPUT_POINT_MAX && 
+           last[0] > 0 && last[0] < w && 
+           last[1] > 0 && last[1] < h &&
+           PIXELXY(last[0], last[1]).key >= 0.0f) {
+        // TODO: AA here
+        UPDATE_OUTPUT(last[0], last[1], 0, 0, 255);
+        ++cnt;
+        last[0] += delta[0];
+        last[1] += delta[1];
+    }
+#undef PIXELXY
+#else
 #define PIXELXY(x, y) (input[int(x) + int(y)*int(w)])
     output[0] = PIXELXY(x, y);
     
@@ -162,6 +203,7 @@ __device__  void GetListToSort(
         last[1] += delta[1];
     }
 #undef PIXELXY
+#endif
 
     *point_cnt = cnt;
 }
@@ -200,7 +242,11 @@ __global__ void ComputeKey(
         const PixelSortBy sort_by, 
         const int w, const int h,
         const float threshold_min, const float threshold_max,
+#ifdef SHOW_SELECT
+        Pixel *inout, Pixel *output) {
+#else
         Pixel *inout) {
+#endif
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -255,6 +301,13 @@ __global__ void ComputeKey(
             cur->b /= 2;
         }
         */
+
+
+#ifdef SHOW_SELECT
+        if (cur->key >= 0.0f) {
+            output[pixelid].r = output[pixelid].g = output[pixelid].b = 255.0f;
+        }
+#endif
     }
 }
 
@@ -268,20 +321,31 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
 
     const int pixelid = y * w + x;
 
+#ifdef SHOW_SORT
+    if (x == w/2 && y == h/2) {
+#else
     if (x < w && y < h) {
+#endif
         const float pixelx = x + 0.5;
         const float pixely = y + 0.5;
 
         int point_cnt_gpu;
         int order_gpu;
 
-        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
-        // Get a list for sorting
-        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
 
+        Pixel pixel_list_gpu[OUPUT_POINT_MAX];
+
+#ifdef SHOW_SORT
+        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output);
+        return;
+#else
+        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
+#endif
         // Sorting
 
-#if 1
+
+#ifndef SORT_TEST
+
         int search_index = kthLargest(point_cnt_gpu - order_gpu, point_cnt_gpu, pixel_list_gpu);
 #else
         for (int i = 0; i < point_cnt_gpu; i++) {
@@ -339,7 +403,12 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
 
     dim3 gdim(CeilDiv(width, 32), CeilDiv(height, 16)), bdim(32, 16);
 
+#ifdef SHOW_SELECT
+    ComputeKey<<<gdim, bdim>>>(sort_by, width, height, threshold_min, threshold_max, input, output);
+    return;
+#else
     ComputeKey<<<gdim, bdim>>>(sort_by, width, height, threshold_min, threshold_max, input);
+#endif
 
     PixelSortPatternParm *pattern_parm_gpu = nullptr;
     switch (pattern_parm->pattern) {
@@ -410,7 +479,6 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             break;
 	}
 
-    //cudaMemcpy(output, input, width*height*sizeof(Pixel), cudaMemcpyDeviceToDevice);
 }
 
 
@@ -467,4 +535,17 @@ int callCudaFunc()
 
 	// return 
 	return H_sum;
+}
+
+void cuLayerMemMove(Pixel* GPUinputMem_CPU, Pixel* &GPUinputMem_GPUIn, Pixel* &GPUinputMem_GPUOut, int size,int dir) {
+	if (dir == 0) {
+		cudaMalloc((void**)&GPUinputMem_GPUIn, sizeof(Pixel)*size);
+		cudaMalloc((void**)&GPUinputMem_GPUOut, sizeof(Pixel)*size);
+		cudaMemcpy(GPUinputMem_GPUIn, GPUinputMem_CPU, sizeof(Pixel)*size, cudaMemcpyHostToDevice);
+	}
+	else if (dir == 1) {
+		cudaMemcpy(GPUinputMem_CPU, GPUinputMem_GPUOut, sizeof(Pixel)*size, cudaMemcpyDeviceToHost);
+		cudaFree(GPUinputMem_GPUIn);
+		cudaFree(GPUinputMem_GPUOut);
+	}
 }
