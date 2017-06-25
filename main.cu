@@ -166,13 +166,13 @@ int main(int argc, char **argv) {
 	auto output_s = output.CreateSync(SIZEB);
 
 	Pixel *background_cpu = background_s.get_cpu_wo();
-    //Pixel *output_cpu = output_s.get_cpu_wo();
+    Pixel *output_cpu = output_s.get_cpu_wo();
     for (int i = 0; i < SIZEB; ++i) {
         for (int j = 0; j < 3; ++j) {
-            //output_cpu[i].e[j] = 0;
             background_cpu[i].e[j] = imgb.get()[i*3+j];
+            output_cpu[i].e[j] = 0;
         }
-        //output_cpu[i].e[3] = 0.0f;
+        output_cpu[i].e[3] = 255.0f;
         background_cpu[i].e[3] = 255.0f;
     }
 	//copy(imgb.get(), imgb.get()+SIZEB, background_cpu);
@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
     PixelSortGPU(
             background_s.get_gpu_rw(), 
             wb, hb, 
-            output_s.get_gpu_wo(), 
+            output_s.get_gpu_rw(), 
             sort_by, threshold_min, threshold_max,
             reverse_sort_order, pattern_parm, 
             anti_aliasing, sort_alpha);
