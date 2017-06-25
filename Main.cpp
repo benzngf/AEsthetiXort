@@ -425,9 +425,9 @@ PF_UserChangedParamExtra *extra){
 			params[UIP_UseGPU]->uu.change_flags = PF_ChangeFlag_CHANGED_VALUE;
 			suites.ParamUtilsSuite3()->PF_UpdateParamUI(in_data->effect_ref, UIP_UseGPU, params[UIP_UseGPU]);
 			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "You don't seem have CUDA, go get a new Nvidia graphics card :))");
-		}else {
+		}/*else {
 			suites.ANSICallbacksSuite1()->sprintf(out_data->return_msg, "噢耶你超棒你有支援CUDAㄉ顯卡 :)");
-		}
+		}*/
 	}
 	if (extra->param_index == UIP_SortPattern) {
 		//change which options to show

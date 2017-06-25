@@ -21,7 +21,7 @@ PixelSortPatternParmRadialSpin psp_radial_spin;
 PixelSortPatternParmPolygon psp_polygon;
 PixelSortPatternParmSpiral psp_spiral;
 PixelSortPatternParmWave psp_wave;
-PixelSortPatternParmOpFlow psp_opflow;
+//PixelSortPatternParmOpFlow psp_opflow;
 PixelSortPatternParm * set_sort_pattern(int argc, char **argv) {
     PixelSortPatternParm *parm = nullptr;
 
@@ -92,9 +92,11 @@ PixelSortPatternParm * set_sort_pattern(int argc, char **argv) {
             psp_wave.rotation = atof(argv[3]);
             parm = &psp_wave.base;
             break;
+            /*
         case PSP_Optical_Flow:
             parm = &psp_opflow.base;
             break;
+            */
         default:
             printf("Wrong pattern name: %s\n", argv[0]);
             exit(-1);
@@ -164,21 +166,21 @@ int main(int argc, char **argv) {
 	auto output_s = output.CreateSync(SIZEB);
 
 	Pixel *background_cpu = background_s.get_cpu_wo();
-    //Pixel *output_cpu = output_s.get_cpu_wo();
+    Pixel *output_cpu = output_s.get_cpu_wo();
     for (int i = 0; i < SIZEB; ++i) {
         for (int j = 0; j < 3; ++j) {
-            //output_cpu[i].e[j] = 0;
             background_cpu[i].e[j] = imgb.get()[i*3+j];
+            output_cpu[i].e[j] = 0;
         }
-        //output_cpu[i].e[3] = 0.0f;
-        background_cpu[i].e[3] = 0.0f;
+        output_cpu[i].e[3] = 255.0f;
+        background_cpu[i].e[3] = 255.0f;
     }
 	//copy(imgb.get(), imgb.get()+SIZEB, background_cpu);
 
     PixelSortGPU(
-            background_s.get_gpu_ro(), 
+            background_s.get_gpu_rw(), 
             wb, hb, 
-            output_s.get_gpu_wo(), 
+            output_s.get_gpu_rw(), 
             sort_by, threshold_min, threshold_max,
             reverse_sort_order, pattern_parm, 
             anti_aliasing, sort_alpha);

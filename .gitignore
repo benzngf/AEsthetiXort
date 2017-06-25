@@ -8,3 +8,4 @@
 *.sdf
 *.htm
 *.opendb
+win/Debug/*

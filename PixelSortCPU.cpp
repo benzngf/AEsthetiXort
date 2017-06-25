@@ -339,7 +339,7 @@ PF_Err iterate8_SortCPU(void* refcon, A_long x, A_long y, PF_Pixel *in, PF_Pixel
 		count--;
 	}
 	//sort pArr
-	Pixel result = CPUkthLargestElement(myIndex, pArr, total);
+	Pixel result = CPUkthLargestElement(total-myIndex-1, pArr, total);
 	//end sort pArr
 	out->red = (A_u_char)result.r;
 	out->green = (A_u_char)result.g;
