@@ -114,7 +114,6 @@ __device__ __host__ int kthLargest(int k, int length, Pixel pixel_array[]) {
 
 #define OUPUT_POINT_MAX 5000
 
-//#define PREDEBUG
 
 // TODO: I think these code is GPU-unfriendly
 __device__  void GetListToSort(
@@ -243,10 +242,11 @@ __global__ void ComputeKey(
         const int w, const int h,
         const float threshold_min, const float threshold_max,
 #ifdef SHOW_SELECT
-        Pixel *inout, Pixel *output) {
+        Pixel *inout, Pixel *output)
 #else
-        Pixel *inout) {
+        Pixel *inout)
 #endif
+{
     const int x = blockIdx.x * blockDim.x + threadIdx.x;
     const int y = blockIdx.y * blockDim.y + threadIdx.y;
 
@@ -311,8 +311,12 @@ __global__ void ComputeKey(
     }
 }
 
-#ifndef PREDEBUG
-__global__ void SortFromList(PixelSortPatternParmLinear *linear, 
+/*(input image, image width, image height, output image(to fill),
+sort by? (RGB...), threshold_min, threshold, max, reverse?
+pattern parameter, do antialiasing?, sort alpha?)*/
+
+template <typename Parm>
+__global__ void SortFromList(Parm *parm, 
     const Pixel *input, Pixel *output, 
     const int w, const int h) {
 
@@ -322,10 +326,11 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
     const int pixelid = y * w + x;
 
 #ifdef SHOW_SORT
-    if (x == w/2 && y == h/2) {
+    if (x == w/2 && y == h/2)
 #else
-    if (x < w && y < h) {
+    if (x < w && y < h)
 #endif
+    {
         const float pixelx = x + 0.5;
         const float pixely = y + 0.5;
 
@@ -336,10 +341,10 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
         Pixel pixel_list_gpu[OUPUT_POINT_MAX];
 
 #ifdef SHOW_SORT
-        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output);
+        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output);
         return;
 #else
-        GetListToSort(input, linear, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
+        GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu);
 #endif
         // Sorting
 
@@ -367,35 +372,6 @@ __global__ void SortFromList(PixelSortPatternParmLinear *linear,
         output[pixelid].a = pixel_list_gpu[search_index].a;
     }
 }
-#endif
-
-/*
-__global__ sort() {
-    const int x = ;
-    const int y = ;
-    const int pixelid = y*w + x;
-    
-    if (x and y are in the valid location) {
-        const float pixelx = x + 0.5, pixely = y + 0.5;
-
-        int order, point_cnt;
-        float output[OUPUT_POINT_MAX*2];
-
-        GetListToSort( PixelSortPatternParmLinear *linear, pixelx, pixely, w,  h, &order, &point_cnt, &output);
-
-           //point -> SortBy
-
-
-        thrust::sort(output);
-
-        background[pixelid] = output[order];
-
-    }
-}
-*/
-/*(input image, image width, image height, output image(to fill),
-sort by? (RGB...), threshold_min, threshold, max, reverse?
-pattern parameter, do antialiasing?, sort alpha?)*/
 
 void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
 	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
@@ -418,10 +394,7 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             debug_print("angle: %f\n", ((PixelSortPatternParmLinear *)pattern_parm)->angle);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmLinear));
             cudaMemcpy(pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmLinear), cudaMemcpyHostToDevice);
-#ifndef PREDEBUG            
-            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, 
-                                            input, output, width, height);
-#endif            
+            SortFromList<<<gdim, bdim>>>((PixelSortPatternParmLinear *)pattern_parm_gpu, input, output, width, height);
             break;
             }
         case PSP_Radial_Spin:
