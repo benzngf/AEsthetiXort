@@ -72,10 +72,10 @@ struct PixelSortPatternParmWave {//Sine, Triangle and Saw Tooth share same parm(
 
 
 
-void PixelSortCPU(const Pixel *input, int width, int height, Pixel *output,
+void PixelSortCPU(Pixel *input, int width, int height, Pixel *output,
         PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
         PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha);
 
-void PixelSortGPU(const Pixel *input, int width, int height, Pixel *output,
+void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
 	PixelSortBy sort_by, float threshold_min, float threshold_max, bool reverse_sort_order,
 	PixelSortPatternParm *pattern_parm, bool anti_aliasing, bool sort_alpha);
