@@ -595,35 +595,37 @@ EntryPointFuncM (
 				//TODO: Real render function
 				if (hasCUDA && params[UIP_UseGPU]->u.bd.value) {
 					//Render in GPU
-					Pixel** GPUinput;
+					int w = (in_data->width*in_data->downsample_x.num / in_data->downsample_x.den);
+					int h = (in_data->height*in_data->downsample_y.num / in_data->downsample_y.den);
+					Pixel** GPUinputMem_CPU;
+					Pixel* GPUinputMem_GPUIn,* GPUinputMem_GPUOut;
 					PixelSortPatternParm* PatternParam;
 					PixelSortPatternParm** PatternParamH = &PatternParam;
 					prepareParams(in_data, out_data, params, PatternParamH);
-					prepareGPUinput(in_data, out_data, params, GPUinput);
+					prepareGPUinput(in_data, out_data, params, GPUinputMem_CPU);
 					//CUDA CALL
-
+					cuLayerMemMove(*GPUinputMem_CPU, GPUinputMem_GPUIn, GPUinputMem_GPUOut, w*h ,0);
+					PixelSortGPU(GPUinputMem_GPUIn, w, h, GPUinputMem_GPUOut,
+						(PixelSortBy)params[UIP_SortBy]->u.pd.value, (float)params[UIP_MinThres]->u.fs_d.value, (float)params[UIP_MaxThres]->u.fs_d.value,
+						(params[UIP_RevSortOrder]->u.bd.value!=0), *PatternParamH, params[UIP_AntiAliasing]->u.bd.value!=0, params[UIP_SortAlpha]->u.bd.value!=0);
+					cuLayerMemMove(*GPUinputMem_CPU, GPUinputMem_GPUIn, GPUinputMem_GPUOut, w*h,1);
 					//END CUDA CALL
 					disposeParams(in_data, PatternParamH);
-					copyGPUresult(in_data, out_data, output, GPUinput);
+					copyGPUresult(in_data, out_data, output, GPUinputMem_CPU);
 				}else{
 					//Fall to CPU Rendering
-					//Render in GPU
 					PixelSortPatternParm* PatternParam;
+					Pixel** GPUinputMem_CPU;
 					PixelSortPatternParm** PatternParamH = &PatternParam;
 					prepareParams(in_data, out_data, params, PatternParamH);
+					prepareCPUinput(in_data, out_data, params, GPUinputMem_CPU);
 					//RENDER
-					PixelSortCPU(in_data, out_data, params,output,*PatternParamH);
+					PixelSortCPU(in_data, out_data, params,output,*PatternParamH, GPUinputMem_CPU);
 					//END RENDER
-					disposeParams(in_data, PatternParamH);
-					/*
 					AEGP_SuiteHandler suites(in_data->pica_basicP);
-					PF_Pixel tempColor;
-					tempColor.alpha = (A_u_char)255;
-					tempColor.red = (A_u_char)0;
-					tempColor.green = (A_u_char)255;
-					tempColor.blue = (A_u_char)0;
-					suites.FillMatteSuite2()->fill(in_data->effect_ref, &tempColor, &(output->extent_hint), output);
-					*/
+					suites.HandleSuite1()->host_dispose_handle((PF_Handle)GPUinputMem_CPU);
+					//copyGPUresult(in_data, out_data, output, GPUinputMem_CPU);
+					disposeParams(in_data, PatternParamH);
 					//suites.WorldTransformSuite1()->copy_hq(in_data->effect_ref, &params[0]->u.ld, output, NULL, &output->extent_hint);
 				}
 				break;
