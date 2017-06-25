@@ -1,5 +1,11 @@
 #include "PixelSort.h"
 #include <cuda.h>
+#ifdef DEBUG
+	#include <stdio.h>
+	#include <math.h>
+#endif
+#include <thrust/sort.h>
+#include <thrust/execution_policy.h>
 
 __device__ __host__ int CeilDiv(int a, int b) { return (a-1)/b + 1; }
 __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
@@ -103,7 +109,6 @@ __device__ __host__ int kthLargest(int k, int length, Pixel pixel_array[]) {
 
 
 #ifdef DEBUG
-#include <stdio.h>
 #define debug_print(...) fprintf(stderr, __VA_ARGS__) 
 #else
 #define debug_print(...)
@@ -185,7 +190,6 @@ __device__ float Map01(
         float offset = (x > threshold_max)? 0 : rhalf;
 
         return ((x - p) + offset) / (rhalf+lhalf);
-
     } else {
         if (x > threshold_max || x < threshold_min) {
             return -1.0f;
@@ -248,7 +252,6 @@ __global__ void ComputeKey(
         cur->key = Map01(cur->key, min, max, threshold_min, threshold_max);
     }
 }
-
 
 #ifndef PREDEBUG
 __global__ void SortFromList(PixelSortPatternParmLinear *linear, 
@@ -375,13 +378,14 @@ void PixelSortGPU(Pixel *input, int width, int height, Pixel *output,
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmWave));
             cudaMemcpy(&pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmWave), cudaMemcpyHostToDevice);
             break;
-            /*
+
+        /*
         case PSP_Optical_Flow:
             debug_print("PSP_Optical_Flow (%d)\n", pattern_parm->pattern);
             cudaMalloc(&pattern_parm_gpu, sizeof(PixelSortPatternParmOpFlow));
             cudaMemcpy(&pattern_parm_gpu, pattern_parm, sizeof(PixelSortPatternParmOpFlow), cudaMemcpyHostToDevice);
             break;
-            */
+         */
 
         default:
             break;
