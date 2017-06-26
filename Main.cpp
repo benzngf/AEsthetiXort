@@ -170,11 +170,12 @@ ParamsSetup (
 	out_data->num_params++;
 
 	A_char PopupStr_2[100];
-	PF_STRCPY(PopupStr_2, "Linear|Radial Spin|Polygon|Spiral|Sine|Triangle|Saw Tooth|Optical Flow");
+	//PF_STRCPY(PopupStr_2, "Linear|Radial Spin|Polygon|Spiral|Sine|Triangle|Saw Tooth|Optical Flow");
+	PF_STRCPY(PopupStr_2, "Linear|Radial Spin|Spiral|Sine");
 	def.param_type = PF_Param_POPUP;
 	PF_STRCPY(def.name, "Sorting Pattern");
 	def.uu.id = 8;
-	def.u.pd.num_choices = 8;
+	def.u.pd.num_choices = 4;
 	def.u.pd.dephault = PSP_Linear;
 	def.u.pd.value = def.u.pd.dephault;
 	def.u.pd.u.namesptr = PopupStr_2;
@@ -291,7 +292,8 @@ ParamsSetup (
 	def.u.fs_d.valid_min = (PF_FpShort)0.1;
 	def.u.fs_d.display_flags = PF_ValueDisplayFlag_PERCENT;
 	//def.ui_flags = PF_PUI_NONE;
-	def.ui_flags = PF_PUI_DISABLED; //hide this parameter(inactive)
+	//def.ui_flags = PF_PUI_DISABLED; //hide this parameter(inactive)
+	def.ui_flags = PF_PUI_INVISIBLE; //completely hide this
 	if (err = PF_ADD_PARAM(in_data, -1, &def))
 		return err;
 	AEFX_CLR_STRUCT(def);
@@ -454,7 +456,7 @@ PF_UserChangedParamExtra *extra){
 			params[UIP_WHRatio]->ui_flags = PF_PUI_NONE;
 			params[UIP_WaveLength]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_WaveHeight]->ui_flags = PF_PUI_DISABLED;
-			params[UIP_Rotation]->ui_flags = PF_PUI_DISABLED;
+			params[UIP_Rotation]->ui_flags = PF_PUI_NONE;
 			break;
 		case PSP_Polygon:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;
@@ -478,7 +480,7 @@ PF_UserChangedParamExtra *extra){
 			params[UIP_WHRatio]->ui_flags = PF_PUI_NONE;
 			params[UIP_WaveLength]->ui_flags = PF_PUI_DISABLED;
 			params[UIP_WaveHeight]->ui_flags = PF_PUI_DISABLED;
-			params[UIP_Rotation]->ui_flags = PF_PUI_NONE;
+			params[UIP_Rotation]->ui_flags = PF_PUI_DISABLED;
 			break;
 		case PSP_Sine:
 			params[UIP_RefLayer]->ui_flags = PF_PUI_DISABLED;

@@ -7,7 +7,7 @@
 #include <thrust/sort.h>
 #include <thrust/execution_policy.h>
 
-#define PI 3.1415926
+#define PI 3.14159265
 
 __device__ __host__ int CeilDiv(int a, int b) { return (a-1)/b + 1; }
 __device__ __host__ int CeilAlign(int a, int b) { return CeilDiv(a, b) * b; }
@@ -172,11 +172,11 @@ __device__  void GetListToSort(
             break;
         last[0] = rspin->center[0] + r * cos(lastangle + rspin->rotation);
         last[1] = rspin->center[1] + r * sin(lastangle + rspin->rotation);
-        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h) {
-            if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h &&input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+            //if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
                 output[cnt] = input[(int)(last[0]) + (int)(last[1])*(int)(w)];
                 cnt++;
-            }
+            //}
         }
         else break;
     }
@@ -189,11 +189,11 @@ __device__  void GetListToSort(
             break;
         last[0] = rspin->center[0] + r * cos(lastangle + rspin->rotation);
         last[1] = rspin->center[1] + r * sin(lastangle + rspin->rotation);
-        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h) {
-            if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+        if (last[0] >= 0.f && last[0] < w && last[1] >= 0.f && last[1] < h&&input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
+            //if (input[(int)(last[0]) + (int)(last[1])*(int)(w)].key >= 0.f) {
                 output[cnt] = input[(int)(last[0]) + (int)(last[1])*(int)(w)];
                 cnt++;
-            }
+            //}
             
         }
         else break;
@@ -210,11 +210,83 @@ __device__  void GetListToSort(
 }
 
 __device__  void GetListToSort(
-        const Pixel *input,
-        PixelSortPatternParmSpiral *spiral,
-        const float x, const float y, 
-        const float w, const float h, 
-        int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
+	const Pixel *input,
+	PixelSortPatternParmSpiral *spiral,
+	const float x, const float y,
+	const float w, const float h,
+	int *order, int *point_cnt, Pixel *output, bool anti_aliasing) {
+	
+	int cnt = 0;
+	float Last[2];
+#define PIXELID(x, y) (int(x) + int(y)*int(w))
+#ifdef SHOW_SORT
+#define UPDATE_OUTPUT(x, y, id, red, green, blue) \
+    output[id].r = red; \
+    output[id].g = green; \
+    output[id].b = blue;
+#else
+#define UPDATE_OUTPUT(x, y, id, red, green, blue) \
+    output[cnt++] = input[id]
+#endif
+	int id = PIXELID(x, y);
+	UPDATE_OUTPUT(x, y, id, 255, 255, 255);
+	if (input[id].key < 0) return;
+
+	float r = sqrtf((x - spiral->center[0])*(x - spiral->center[0]) + (y - spiral->center[1])*(y - spiral->center[1]));
+	float theta = atan2f(y - spiral->center[1], x - spiral->center[0]);
+	float dr = 100.0f / (100.0f + (r*spiral->curveAngle / 100.0f)*(r*spiral->curveAngle / 100.0f));
+	float dTheta = dr*spiral->curveAngle / 1000.0f;
+	r -= dr;
+	theta -= dTheta;
+	Last[0] = spiral->center[0] + r*cosf(theta);
+	Last[1] = spiral->center[1] + r*sinf(theta);
+	id = PIXELID(Last[0], Last[1]);
+
+	while (cnt < OUPUT_POINT_MAX &&
+		Last[0] > 0 && Last[0] < w &&
+		Last[1] > 0 && Last[1] < h &&r>0.5f&&
+		input[id].key >= 0.0f) {
+		// TODO: AA here
+		UPDATE_OUTPUT(Last[0], Last[1], id, 255, 0, 0);
+		dr = 100.0f / (100.0f + (r*spiral->curveAngle / 100.0f)*(r*spiral->curveAngle / 100.0f));
+		dTheta = dr*spiral->curveAngle / 1000.0f;
+		r -= dr;
+		theta -= dTheta;
+		Last[0] = spiral->center[0] + r*cosf(theta);
+		Last[1] = spiral->center[1] + r*sinf(theta);
+		id = PIXELID(Last[0], Last[1]);
+	}
+
+	*order = cnt - 1;
+
+	r = sqrtf((x - spiral->center[0])*(x - spiral->center[0]) + (y - spiral->center[1])*(y - spiral->center[1]));
+	theta = atan2f(y - spiral->center[1], x - spiral->center[0]);
+	dr = 100.0f / (100.0f + (r*spiral->curveAngle / 100.0f)*(r*spiral->curveAngle / 100.0f));
+	dTheta = dr*spiral->curveAngle / 1000.0f;
+	r += dr;
+	theta += dTheta;
+	Last[0] = spiral->center[0] + r*cosf(theta);
+	Last[1] = spiral->center[1] + r*sinf(theta);
+	id = PIXELID(Last[0], Last[1]);
+
+	while (cnt < OUPUT_POINT_MAX &&
+		Last[0] > 0 && Last[0] < w &&
+		Last[1] > 0 && Last[1] < h &&
+		input[id].key >= 0.0f) {
+		// TODO: AA here
+		UPDATE_OUTPUT(Last[0], Last[1], id, 255, 0, 0);
+		dr = 100.0f / (100.0f + (r*spiral->curveAngle / 100.0f)*(r*spiral->curveAngle / 100.0f));
+		dTheta = dr*spiral->curveAngle / 1000.0f;
+		r += dr;
+		theta += dTheta;
+		Last[0] = spiral->center[0] + r*cosf(theta);
+		Last[1] = spiral->center[1] + r*sinf(theta);
+		id = PIXELID(Last[0], Last[1]);
+	}
+
+	*point_cnt = cnt;
+#undef PIXELID
+#undef UPDATE_OUTPUT
 }
 
 __device__  void GetListToSortSine(
@@ -223,7 +295,7 @@ __device__  void GetListToSortSine(
         const float x, const float y, 
         const float w, const float h, 
         int *order, int *point_cnt, Pixel *output) {
-    float offset = 0.0f;
+    float offset = -y * sinf(wave->rotation);
     float last[2][2];
     int cnt = 0;
     float temp_cos;
@@ -241,7 +313,7 @@ __device__  void GetListToSortSine(
     int id = PIXELID(x, y);
     UPDATE_OUTPUT(x, y, id, 255, 255, 255);
 
-    temp_cos = wave->waveHeight*cos(fmod(x - offset, wave->waveLength) / wave->waveLength * 2.0f*PI);
+    temp_cos = wave->waveHeight*cos(fmod(x - offset, wave->waveLength) / wave->waveLength * 2.0f*PI) / wave->waveLength * 2.0f*PI;
     last[0][0] = x + 1.0f / sqrt(1 + temp_cos*temp_cos);
     last[0][1] = y + temp_cos / sqrt(1 + temp_cos*temp_cos);
     RotateVector(wave->rotation, last[0], last[1], x, y);
@@ -253,7 +325,7 @@ __device__  void GetListToSortSine(
            input[id].key >= 0.0f) {
         // TODO: AA here
         UPDATE_OUTPUT(last[1][0], last[1][1], id, 255, 0, 0);
-        temp_cos = wave->waveHeight*cos(fmod(last[0][0] - offset, wave->waveLength) / wave->waveLength * 2.0f*PI);
+        temp_cos = wave->waveHeight*cos(fmod(last[0][0] - offset, wave->waveLength) / wave->waveLength * 2.0f*PI) / wave->waveLength * 2.0f*PI;
         last[0][0] += 1.0f / sqrt(1 + temp_cos*temp_cos);
         last[0][1] += temp_cos / sqrt(1 + temp_cos*temp_cos);
         RotateVector(wave->rotation, last[0], last[1], x, y);
@@ -262,7 +334,7 @@ __device__  void GetListToSortSine(
     
     *order = cnt-1;
 
-    temp_cos = wave->waveHeight*cos(fmod(x - offset, wave->waveLength) / wave->waveLength * 2.0f*PI);
+    temp_cos = wave->waveHeight*cos(fmod(x - offset, wave->waveLength) / wave->waveLength * 2.0f*PI) / wave->waveLength * 2.0f*PI;
     last[0][0] = x - 1.0f / sqrt(1 + temp_cos*temp_cos);
     last[0][1] = y - temp_cos / sqrt(1 + temp_cos*temp_cos);
     RotateVector(wave->rotation, last[0], last[1], x, y);
@@ -274,7 +346,7 @@ __device__  void GetListToSortSine(
         // TODO: AA here
         UPDATE_OUTPUT(last[1][0], last[1][1], id, 0, 0, 255);
         ++cnt;
-        temp_cos = wave->waveHeight*cos(fmod(last[0][0] - offset, wave->waveLength) / wave->waveLength * 2.0f*PI);
+        temp_cos = wave->waveHeight*cos(fmod(last[0][0] - offset, wave->waveLength) / wave->waveLength * 2.0f*PI) / wave->waveLength * 2.0f*PI;
         last[0][0] -= 1.0f / sqrt(1 + temp_cos*temp_cos);
         last[0][1] -= temp_cos / sqrt(1 + temp_cos*temp_cos);
         RotateVector(wave->rotation, last[0], last[1], x, y);
@@ -569,7 +641,9 @@ __global__ void SortFromList(Parm *parm,
 
 
         Pixel pixel_list_gpu[OUPUT_POINT_MAX];
-
+		for (int i = 0; i < OUPUT_POINT_MAX; i++) {
+			(pixel_list_gpu[i]).key = -100.0f;
+		}
 #ifdef SHOW_SORT
         GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, output, anti_aliasing);
         return;
@@ -577,12 +651,15 @@ __global__ void SortFromList(Parm *parm,
         GetListToSort(input, parm, pixelx, pixely, (float)w, (float)h, &order_gpu, &point_cnt_gpu, pixel_list_gpu, anti_aliasing);
 #endif
         // Sorting
-
+		if (point_cnt_gpu <= 1) {
+			output[pixelid] = input[pixelid];
+			return;
+		}
 
 #ifndef SORT_TEST
 
         int search_index = kthLargest(point_cnt_gpu - order_gpu, point_cnt_gpu, pixel_list_gpu);
-#else
+#else //bubble sort
         for (int i = 0; i < point_cnt_gpu; i++) {
             for (int j = 0; j < point_cnt_gpu - i; j++){
                 if (pixel_list_gpu[j].key > pixel_list_gpu[j+1].key) {
@@ -597,6 +674,10 @@ __global__ void SortFromList(Parm *parm,
 
         // Fill value: order
         output[pixelid] = pixel_list_gpu[search_index];
+		if (pixel_list_gpu[search_index].key<=0) {
+			output[pixelid] = input[pixelid];
+			return;
+		}
     }
 }
 

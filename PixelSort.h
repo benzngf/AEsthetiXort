@@ -1,5 +1,4 @@
 #pragma once
-
 enum PixelSortBy {
     PSB_None,
     PSB_Hue,
@@ -14,42 +13,49 @@ enum PixelSortPattern {
     PSP_None,
     PSP_Linear,
     PSP_Radial_Spin,
-    PSP_Polygon,
-    PSP_Spiral,
+    PSP_Polygon = -10,
+    PSP_Spiral = 3,
     PSP_Sine,
     PSP_Triangle,
     PSP_Saw_Tooth,
     PSP_Optical_Flow,
 };
 
+#ifndef __host__
+#define __host__
+#endif // __host__
+
+#ifndef __device__
+#define __device__
+#endif // __device__
+
 struct Pixel {/*0.0f-255.0f*/
-    union {
-        struct {
-            float r, g, b, a;
-        };
-        float e[4];
-    };
+	union {
+		struct {
+			float r, g, b, a;
+		};
+		float e[4];
+	};
 	float key;
+	__host__ __device__ Pixel operator+(const Pixel& rhs) const {
+		Pixel result;
+		result.r = r + rhs.r;
+		result.g = g + rhs.g;
+		result.b = b + rhs.b;
+		result.a = a + rhs.a;
+		result.key = key + rhs.key; // key?
+		return result;
+	}
 
-    __host__ __device__ Pixel operator+(const Pixel& rhs) const {
-        Pixel result;
-        result.r = r + rhs.r;
-        result.g = g + rhs.g;
-        result.b = b + rhs.b;
-        result.a = a + rhs.a;
-        result.key = key + rhs.key; // key?
-        return result;
-    }
-
-    __host__ __device__ Pixel operator*(const float& coef) const {
-        Pixel result;
-        result.r = r * coef;
-        result.g = g * coef;
-        result.b = b * coef;
-        result.a = a * coef;
-        result.key = key * coef;
-        return result;
-    }
+	__host__ __device__ Pixel operator*(const float& coef) const {
+		Pixel result;
+		result.r = r * coef;
+		result.g = g * coef;
+		result.b = b * coef;
+		result.a = a * coef;
+		result.key = key * coef;
+		return result;
+	}
 };
 
 
